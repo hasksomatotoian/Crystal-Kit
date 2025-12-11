@@ -11,6 +11,11 @@ set sample_name "Cobalt Strike Beacon (Default)";
 stage {
 	set stomppe "false";
 	set name    "beacon.dll";
+    
+    # https://github.com/hasksomatotoian/Crystal-Kit?tab=readme-ov-file#usage
+    set sleep_mask "false";
+    set cleanup "true";
+    transform-obfuscate { }
 
 	string "%d.%s";
 	string "post";
@@ -216,4 +221,10 @@ dns-beacon {
     set get_TXT "api.";
     set put_metadata "www.";
     set put_output "post.";
+}
+
+# https://github.com/hasksomatotoian/Crystal-Kit?tab=readme-ov-file#usage
+post-ex {
+    set cleanup "true";
+    set smartinject "true";
 }
