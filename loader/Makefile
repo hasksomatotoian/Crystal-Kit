@@ -15,6 +15,7 @@ bin/loader.x64.o: bin
 	$(CC_64) -DWIN_X64 -shared -Wall -Wno-pointer-arith -c src/mask.c     -o bin/mask.x64.o
 	$(CC_64) -DWIN_X64 -shared -Wall -Wno-pointer-arith -c src/cfg.c      -o bin/cfg.x64.o
 	$(CC_64) -DWIN_X64 -shared -Wall -Wno-pointer-arith -c src/cleanup.c  -o bin/cleanup.x64.o
+	$(CC_64) -DWIN_X64 -shared -Wall -Wno-pointer-arith -c src/syscalls.c -o bin/syscalls.x64.o
 	
 	$(NASM) src/draugr.asm -o bin/draugr.x64.bin
 
