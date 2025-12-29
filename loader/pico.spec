@@ -39,6 +39,12 @@ x64:
         exportfunc "setup_hooks"  "__tag_setup_hooks"
         exportfunc "setup_memory" "__tag_setup_memory"
 
+        # These functions are used directly in the PICO code
+        # There are also some additional functions called from the `cleanup_memory` function in `cleanup.c`
+        attach "KERNEL32$ExitThread"          "_ExitThread"
+        attach "KERNEL32$Sleep"               "_Sleep"
+        attach "KERNEL32$VirtualProtect"      "_VirtualProtect"
+
         # hook functions in the DLL
         addhook "WININET$InternetOpenA"       "_InternetOpenA"
         addhook "WININET$InternetConnectA"    "_InternetConnectA"
@@ -48,7 +54,7 @@ x64:
         addhook "KERNEL32$CreateRemoteThread" "_CreateRemoteThread"
         addhook "KERNEL32$CreateThread"       "_CreateThread"
         addhook "KERNEL32$DuplicateHandle"    "_DuplicateHandle"
-        addhook "KERNEL32$ExitThread"         "_ExitThread"
+        addhook "KERNEL32$ExitThread"         "_ExitThreadWithCleanupMemory"
         addhook "KERNEL32$GetThreadContext"   "_GetThreadContext"
         # DOESN'T WORK - addhook "KERNEL32$LoadLibraryA"       "_LoadLibraryA"
         addhook "KERNEL32$MapViewOfFile"      "_MapViewOfFile"
@@ -57,7 +63,7 @@ x64:
         addhook "KERNEL32$ReadProcessMemory"  "_ReadProcessMemory"
         addhook "KERNEL32$ResumeThread"       "_ResumeThread"
         addhook "KERNEL32$SetThreadContext"   "_SetThreadContext"
-        addhook "KERNEL32$Sleep"              "_Sleep"
+        addhook "KERNEL32$Sleep"              "_SleepWithMaskMemory"
         addhook "KERNEL32$UnmapViewOfFile"    "_UnmapViewOfFile"
         # DOESN'T WORK - addhook "KERNEL32$VirtualAlloc"       "_VirtualAlloc"
         addhook "KERNEL32$VirtualAllocEx"     "_VirtualAllocEx"
@@ -67,6 +73,8 @@ x64:
         addhook "KERNEL32$VirtualQuery"       "_VirtualQuery"
         addhook "KERNEL32$WriteProcessMemory" "_WriteProcessMemory"
         addhook "OLE32$CoCreateInstance"      "_CoCreateInstance"
+
+        disassemble "pico.txt"
 
         mergelib "../libtcg.x64.zip"
 
