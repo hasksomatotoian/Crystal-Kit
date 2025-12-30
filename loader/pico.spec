@@ -2,6 +2,10 @@ x64:
     load "bin/pico.x64.o"
         make object +disco
     
+    # syscalls
+    load "bin/syscalls.x64.o"
+        merge
+
     # merge the hook functions
     load "bin/hooks.x64.o"
         merge

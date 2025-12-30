@@ -5,6 +5,10 @@ x64:
     # merge pic services
     run "services.spec"
 
+    # syscalls
+    load "bin/syscalls.x64.o"
+        merge
+
     # merge hooks into the loader
     load "bin/hooks.x64.o"
         merge

