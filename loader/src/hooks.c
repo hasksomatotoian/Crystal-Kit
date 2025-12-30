@@ -14,6 +14,9 @@ DECLSPEC_IMPORT HANDLE    WINAPI KERNEL32$CreateRemoteThread    ( HANDLE, LPSECU
 DECLSPEC_IMPORT HANDLE    WINAPI KERNEL32$CreateThread          ( LPSECURITY_ATTRIBUTES, SIZE_T, LPTHREAD_START_ROUTINE, LPVOID, DWORD, LPDWORD );
 DECLSPEC_IMPORT BOOL      WINAPI KERNEL32$DuplicateHandle       ( HANDLE, HANDLE, HANDLE, LPHANDLE, DWORD, BOOL, DWORD );
 DECLSPEC_IMPORT VOID      WINAPI KERNEL32$ExitThread            ( DWORD );
+DECLSPEC_IMPORT BOOL      WINAPI KERNEL32$FreeEnvironmentStringsA ( LPCH );
+DECLSPEC_IMPORT LPCH      WINAPI KERNEL32$GetEnvironmentStrings ();
+DECLSPEC_IMPORT int       WINAPI KERNEL32$lstrlenA              ( LPCSTR );
 DECLSPEC_IMPORT VOID      WINAPI KERNEL32$RtlCaptureContext     ( PCONTEXT );
 DECLSPEC_IMPORT VOID      WINAPI KERNEL32$Sleep                 ( DWORD );
 DECLSPEC_IMPORT BOOL      WINAPI KERNEL32$VirtualProtect        ( LPVOID, SIZE_T, DWORD, PDWORD );
@@ -240,29 +243,29 @@ HRESULT WINAPI _CoCreateInstance ( REFCLSID rclsid, LPUNKNOWN pUnkOuter, DWORD d
     return ( HRESULT ) spoof_call ( &call );
 }
 
-BOOL WINAPI _DuplicateHandle ( HANDLE hSourceProcessHandle, HANDLE hSourceHandle, HANDLE hTargetProcessHandle, LPHANDLE lpTargetHandle, DWORD dwDesiredAccess, BOOL bInheritHandle, DWORD dwOptions )
-{
-    // The syscall version crashed the beacon when running the `powerpick $pid` command
-    /*
-    SYSCALL syscall = { 0 };
-    if ( ! prepare_nt_syscall ( NTDLL_HASH, NTDUPLICATEOBJECT_HASH, &syscall ) ) return FALSE;
-    return ( NTSTATUS ) do_syscall ( hSourceProcessHandle, hSourceHandle, hTargetProcessHandle, lpTargetHandle, dwDesiredAccess, bInheritHandle ? OBJ_INHERIT : 0, dwOptions ) == 0;
-    */
-    FUNCTION_CALL call = { 0 };
+// BOOL WINAPI _DuplicateHandle ( HANDLE hSourceProcessHandle, HANDLE hSourceHandle, HANDLE hTargetProcessHandle, LPHANDLE lpTargetHandle, DWORD dwDesiredAccess, BOOL bInheritHandle, DWORD dwOptions )
+// {
+//     // The syscall version crashed the beacon when running the `powerpick $pid` command
+//     /*
+//     SYSCALL syscall = { 0 };
+//     if ( ! prepare_nt_syscall ( NTDLL_HASH, NTDUPLICATEOBJECT_HASH, &syscall ) ) return FALSE;
+//     return ( NTSTATUS ) do_syscall ( hSourceProcessHandle, hSourceHandle, hTargetProcessHandle, lpTargetHandle, dwDesiredAccess, bInheritHandle ? OBJ_INHERIT : 0, dwOptions ) == 0;
+//     */
+//     FUNCTION_CALL call = { 0 };
 
-    call.ptr  = ( PVOID ) ( KERNEL32$DuplicateHandle );
-    call.argc = 7;
+//     call.ptr  = ( PVOID ) ( KERNEL32$DuplicateHandle );
+//     call.argc = 7;
     
-    call.args [ 0 ] = spoof_arg ( hSourceProcessHandle );
-    call.args [ 1 ] = spoof_arg ( hSourceHandle );
-    call.args [ 2 ] = spoof_arg ( hTargetProcessHandle );
-    call.args [ 3 ] = spoof_arg ( lpTargetHandle );
-    call.args [ 4 ] = spoof_arg ( dwDesiredAccess );
-    call.args [ 5 ] = spoof_arg ( bInheritHandle );
-    call.args [ 6 ] = spoof_arg ( dwOptions );
+//     call.args [ 0 ] = spoof_arg ( hSourceProcessHandle );
+//     call.args [ 1 ] = spoof_arg ( hSourceHandle );
+//     call.args [ 2 ] = spoof_arg ( hTargetProcessHandle );
+//     call.args [ 3 ] = spoof_arg ( lpTargetHandle );
+//     call.args [ 4 ] = spoof_arg ( dwDesiredAccess );
+//     call.args [ 5 ] = spoof_arg ( bInheritHandle );
+//     call.args [ 6 ] = spoof_arg ( dwOptions );
 
-    return ( BOOL ) spoof_call ( &call );
-}
+//     return ( BOOL ) spoof_call ( &call );
+// }
 
 HMODULE WINAPI _LoadLibraryA ( LPCSTR lpLibFileName )
 {
@@ -367,6 +370,7 @@ LPVOID WINAPI _VirtualAlloc ( LPVOID lpAddress, SIZE_T dwSize, DWORD flAllocatio
     return lpAddress;
 }
 
+/*
 LPVOID WINAPI _VirtualAllocEx ( HANDLE hProcess, LPVOID lpAddress, SIZE_T dwSize, DWORD flAllocationType, DWORD flProtect )
 {
     SYSCALL syscall = { 0 };
@@ -374,6 +378,7 @@ LPVOID WINAPI _VirtualAllocEx ( HANDLE hProcess, LPVOID lpAddress, SIZE_T dwSize
     do_syscall ( hProcess, &lpAddress, ( ULONG_PTR ) ( 0 ), &dwSize, flAllocationType, flProtect );
     return lpAddress;
 }
+*/
 
 BOOL WINAPI _VirtualFree ( LPVOID lpAddress, SIZE_T dwSize, DWORD dwFreeType )
 {
@@ -410,12 +415,14 @@ BOOL WINAPI _VirtualProtect ( LPVOID lpAddress, SIZE_T dwSize, DWORD flNewProtec
     return ( BOOL ) spoof_call ( &call );
 }
 
+/*
 BOOL WINAPI _VirtualProtectEx ( HANDLE hProcess, LPVOID lpAddress, SIZE_T dwSize, DWORD flNewProtect, PDWORD lpflOldProtect )
 {
     SYSCALL syscall = { 0 };
     if ( ! prepare_nt_syscall ( NTDLL_HASH, NTPROTECTVIRTUALMEMORY_HASH, &syscall ) ) return FALSE;
     return ( NTSTATUS ) do_syscall ( hProcess, &lpAddress, &dwSize, flNewProtect, lpflOldProtect ) == 0;
 }
+*/
 
 SIZE_T WINAPI _VirtualQuery ( LPCVOID lpAddress, PMEMORY_BASIC_INFORMATION lpBuffer, SIZE_T dwLength )
 {
@@ -449,7 +456,6 @@ VOID WINAPI _Sleep ( DWORD dwMilliseconds )
 
 VOID WINAPI _ExitThread ( DWORD dwExitCode )
 {
-    /* call the real exit thread */
     FUNCTION_CALL call = { 0 };
 
     call.ptr  = ( PVOID ) ( KERNEL32$ExitThread );
@@ -457,4 +463,36 @@ VOID WINAPI _ExitThread ( DWORD dwExitCode )
     call.args [ 0 ]  = spoof_arg ( dwExitCode );
 
     spoof_call ( &call );
+}
+
+BOOL WINAPI _FreeEnvironmentStringsA ( LPCH penv)
+{
+    FUNCTION_CALL call = { 0 };
+
+    call.ptr  = ( PVOID ) ( KERNEL32$FreeEnvironmentStringsA );
+    call.argc = 1;
+    call.args [ 0 ]  = spoof_arg ( penv );
+
+    return (BOOL) spoof_call ( &call );
+}
+
+LPCH WINAPI _GetEnvironmentStrings ()
+{
+    FUNCTION_CALL call = { 0 };
+
+    call.ptr  = ( PVOID ) ( KERNEL32$GetEnvironmentStrings );
+    call.argc = 0;
+
+    return (LPCH) spoof_call ( &call );
+}
+
+int WINAPI _lstrlenA ( LPCSTR lpString )
+{
+    FUNCTION_CALL call = { 0 };
+
+    call.ptr  = ( PVOID ) ( KERNEL32$FreeEnvironmentStringsA );
+    call.argc = 1;
+    call.args [ 0 ]  = spoof_arg ( lpString );
+
+    return (int) spoof_call ( &call );
 }
