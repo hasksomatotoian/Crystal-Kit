@@ -1,7 +1,7 @@
 x64:
     load "bin/loader.x64.o"
-        make pic +gofirst +optimize
-    
+        make pic +gofirst +optimize +disco
+
     # merge pic services
     run "services.spec"
 
@@ -22,6 +22,8 @@ x64:
     attach "KERNEL32$VirtualAlloc"    "_VirtualAlloc"
     attach "KERNEL32$VirtualProtect"  "_VirtualProtect"
     attach "KERNEL32$VirtualFree"     "_VirtualFree"
+
+    disassemble "loader.txt"
 
     # mask & link the dll
     generate $MASK 128
