@@ -95,10 +95,13 @@ void go ( )
     memory.Pico.BaseAddress = ( PVOID ) ( pico_dst );
     memory.Pico.Size        = sizeof ( PICO );
     
+    /* section 0 is data section */
     memory.Pico.Sections[ 0 ].BaseAddress     = ( PVOID ) ( pico_dst->data );
     memory.Pico.Sections[ 0 ].Size            = PicoDataSize ( pico_src );
     memory.Pico.Sections[ 0 ].CurrentProtect  = PAGE_READWRITE;
     memory.Pico.Sections[ 0 ].PreviousProtect = PAGE_READWRITE;
+    
+    /* section 1 is code section */
     memory.Pico.Sections[ 1 ].BaseAddress     = ( PVOID ) ( pico_dst->code );
     memory.Pico.Sections[ 1 ].Size            = PicoCodeSize ( pico_src );
     memory.Pico.Sections[ 1 ].CurrentProtect  = PAGE_EXECUTE_READ;

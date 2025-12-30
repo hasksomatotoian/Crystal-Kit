@@ -40,6 +40,10 @@ void setup_hooks ( IMPORTFUNCS * funcs )
 void setup_memory ( MEMORY_LAYOUT * layout )
 {
     if ( layout != NULL ) {
+        /*
+         * take poiner from loader
+         * and dereference a copy
+         */
         g_memory = * layout;
     }
 }
