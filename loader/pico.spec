@@ -76,15 +76,8 @@ x64:
         addhook "KERNEL32$WriteProcessMemory" "_WriteProcessMemory"
         addhook "OLE32$CoCreateInstance"      "_CoCreateInstance"
 
-<<<<<<< HEAD
-    # hook functions in pico
-    attach "KERNEL32$VirtualProtect" "_VirtualProtect"  # this is needed to hook VirtualProtect in mask.c
-
-    mergelib "../libtcg.x64.zip"
-=======
         disassemble "pico.txt"
 
         mergelib "../libtcg.x64.zip"
->>>>>>> 9c288c3 (Fixing issue where KERNEL32$VirtualProtect was called from PICO without call spoofing)
 
     export
