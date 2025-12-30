@@ -137,6 +137,12 @@ set POSTEX_RDLL_GENERATE
 
     print_info ( "POSTEX_RDLL_GENERATE" );
 
+    $postex = strrep_pad ( $postex, "w/hr", "err" );
+    $postex = strrep_pad ( $postex, "[-]", "[!]" );
+    $postex = strrep_pad ( $postex, "ReflectiveLoader", "legitLoader" );
+    $postex = strrep_pad ( $postex, "invokeassembly.x64.dll", "revokeassembly.x64.dll" );
+    $postex = strrep_pad ( $postex, "powershell.x64.dll", "weakshell.x64.dll" );
+
     $spec_path = getFileProper ( script_resource ( "postex-loader" ), "loader.spec" );
     $spec      = [ LinkSpec Parse: $spec_path ];
 

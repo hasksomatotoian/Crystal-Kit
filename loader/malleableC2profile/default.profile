@@ -226,5 +226,15 @@ dns-beacon {
 # https://github.com/hasksomatotoian/Crystal-Kit?tab=readme-ov-file#usage
 post-ex {
     set cleanup "true";
-    set smartinject "true";
+}
+
+process-inject {
+    set startrwx "false";
+    set userwx "false";
+    execute {
+        ObfSetThreadContext "ntdll.dll!RtlUserThreadStart+0x2c";
+        CreateRemoteThread "ntdll!TppWorkerThread+0x37e";
+        SetThreadContext;
+        RtlCreateUserThread;
+    }
 }
