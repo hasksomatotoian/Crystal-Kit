@@ -86,16 +86,23 @@ void go ( )
     /* load it into memory */
     // !!! Alert: Malicious Behavior Detection Alert: Suspicious Network Module LoadLibrary
     // !!! Detects attempts to load a Microsoft networking related module from a potentially altered call stack in order to conceal the true source of the call.
+    /*
+    [0x0]   KERNELBASE!LoadLibraryA   0xc8e9d8   0x7fff2be49aa9   
+    [0x1]   KERNELBASE!CreateAppContainerToken+0x18b9   0xc8e9e0   0x7fff2ce0e8d7   
+    [0x2]   KERNEL32!BaseThreadInitThunk+0x17   0xc8f4a0   0x7fff2eb4c53c   
+    [0x3]   ntdll!RtlUserThreadStart+0x2c   0xc8f4d0   0x0   
+
+
+    [0x0]   KERNELBASE!LoadLibraryA   0xc8f3a8   0x7fff2bf4c70a   
+    [0x1]   KERNELBASE!GetConsoleAliasExesW+0xea   0xc8f3b0   0x7fff2ce0e8d7   
+    [0x2]   KERNEL32!BaseThreadInitThunk+0x17   0xc8f4a0   0x7fff2eb4c53c   
+    [0x3]   ntdll!RtlUserThreadStart+0x2c   0xc8f4d0   0x0   
+    */
     __debugbreak();
     PicoLoad ( &funcs, pico_src, pico_dst->code, pico_dst->data );
 
     /* make code section RX */
     DWORD old_protect;
-    // !!! Alert: Malicious Behavior Detection Alert: Unbacked Shellcode from Unsigned Module
-    // !!! Identifies attempt to allocate or execute Shellcode from a module with low or unknown reputation.
-    // !!! Alert: Malicious Behavior Detection Alert: Suspicious Memory Protection Change via VirtualProtect
-    // !!! Identifies when a process attempts to allocate shellcode memory region using VirtualProtect API changing memory protections from RW to RX.
-    __debugbreak();
     KERNEL32$VirtualProtect ( pico_dst->code, PicoCodeSize ( pico_src ), PAGE_EXECUTE_READ, &old_protect );
 
     /* begin tracking memory allocations */
