@@ -54,9 +54,7 @@ x64:
     addhook "KERNEL32$CreateThread"       "_CreateThread"
     addhook "KERNEL32$DuplicateHandle"    "_DuplicateHandle"
     addhook "KERNEL32$ExitThread"         "_ExitThreadWithCleanupMemory"
-    # DOESN'T WORK WITH POWERPICK - addhook "KERNEL32$GetProcAddress"     "_GetProcAddress"
     addhook "KERNEL32$GetThreadContext"   "_GetThreadContext"
-    # DOESN'T WORK WITH POWERPICK - addhook "KERNEL32$LoadLibraryA"       "_LoadLibraryA"
     # Commented out to decrease the payload size - addhook "KERNEL32$MapViewOfFile"      "_MapViewOfFile"
     addhook "KERNEL32$OpenProcess"        "_OpenProcess"
     addhook "KERNEL32$OpenThread"         "_OpenThread"
@@ -65,8 +63,6 @@ x64:
     addhook "KERNEL32$SetThreadContext"   "_SetThreadContext"
     addhook "KERNEL32$Sleep"              "_SleepWithMaskMemory"
     # Commented out to decrease the payload size - addhook "KERNEL32$UnmapViewOfFile"    "_UnmapViewOfFile"
-    # DOESN'T WORK WITH POWERPICK - addhook "KERNEL32$VirtualAlloc"       "_VirtualAlloc"
-    # DOESN'T WORK WITH POWERPICK - addhook "KERNEL32$VirtualAllocEx"     "_VirtualAllocEx"
     addhook "KERNEL32$VirtualFree"        "_VirtualFree"
     addhook "KERNEL32$VirtualProtect"     "_VirtualProtect"
     addhook "KERNEL32$VirtualProtectEx"   "_VirtualProtectEx"
@@ -77,6 +73,26 @@ x64:
     # addhook "KERNEL32$FreeEnvironmentStringsA" "_FreeEnvironmentStringsA"
     # addhook "KERNEL32$GetEnvironmentStrings"   "_GetEnvironmentStrings"
     # addhook "KERNEL32$lstrlenA"           "_lstrlenA"
+
+    ###########################################################################
+    # Following hooks are not camptible with:
+    # - `powerpick`
+    ###########################################################################
+    addhook "KERNEL32$GetProcAddress"     "_GetProcAddress"
+    addhook "KERNEL32$LoadLibraryA"       "_LoadLibraryA"
+
+    ###########################################################################
+    # Following hooks are not camptible with:
+    # - `powerpick`
+    # - `inject`
+    #
+    # If they are not used they create 2 alerts ("Shellcode from Unusual 
+    # Microsoft Signed Module" and "Shellcode Behavior from Unusual Memory")
+    # when executing:
+    # - `env` BOF
+    ###########################################################################
+    # addhook "KERNEL32$VirtualAlloc"       "_VirtualAlloc"
+    # addhook "KERNEL32$VirtualAllocEx"     "_VirtualAllocEx"
 
     disassemble "pico.txt"
 
