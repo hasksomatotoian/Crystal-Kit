@@ -79,6 +79,7 @@ set BEACON_RDLL_GENERATE
 
     # The output will be a PIC blob that contains the loader and Beacon DLL. If anything fails
     # and the script returns $null, it tells Cobalt Strike to fallback to its default loader.
+    print_info ( strlen ( $final ) );
     if ( strlen ( $final ) == 0 )
     {
         warn ( "Failed to build payload" );
