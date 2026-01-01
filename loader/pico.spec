@@ -76,14 +76,14 @@ x64:
 
     ###########################################################################
     # Following hooks are not camptible with:
-    # - `powerpick`
+    # - POSTEX_RDLLs (`powerpick`, `execute-assembly`, ...)
     ###########################################################################
-    addhook "KERNEL32$GetProcAddress"     "_GetProcAddress"
-    addhook "KERNEL32$LoadLibraryA"       "_LoadLibraryA"
+    # addhook "KERNEL32$GetProcAddress"     "_GetProcAddress"
+    # addhook "KERNEL32$LoadLibraryA"       "_LoadLibraryA"
 
     ###########################################################################
     # Following hooks are not camptible with:
-    # - `powerpick`
+    # - POSTEX_RDLLs (`powerpick`, `execute-assembly`, ...)
     # - `inject`
     #
     # If they are not used they create 2 alerts ("Shellcode from Unusual 
