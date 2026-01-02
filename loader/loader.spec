@@ -1,5 +1,8 @@
 x64:
     load "bin/loader.x64.o"
+        # The +optimize option - Crystal Palace will remove any code that is not actively being used by the loader.
+        # The +disco option tells Crystal Palace to randomize the order of the functions in the final PIC.
+        # The only function it won't reorder is go, as this is pinned by the +gofirst option.
         make pic +gofirst +optimize +disco
 
     # merge pic services
@@ -27,7 +30,9 @@ x64:
     attach "KERNEL32$VirtualProtect"  "_VirtualProtect"
     attach "KERNEL32$VirtualFree"     "_VirtualFree"
 
-    preserve "KERNEL32$LoadLibraryA" "init_frame_info"
+    preserve "KERNEL32$LoadLibraryA"  "init_frame_info"
+
+    disassemble "loader.txt"
 
     disassemble "loader.txt"
 

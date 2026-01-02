@@ -4,5 +4,5 @@ x64:
 
     mergelib "../libtcg.x64.zip"
 
-    dfr "resolve" "ror13" "KERNEL32, NTDLL"
+    dfr "resolve" "strings" "KERNEL32, NTDLL"
     dfr "resolve_ext" "strings"

