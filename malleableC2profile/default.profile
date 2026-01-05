@@ -24,8 +24,8 @@ post-ex {
 	#
 	# This means that when you set a spawnto, you can actually include command line arguments as well.
 	#   https://www.zeropointsecurity.co.uk/path-player?courseid=red-team-ops-ii&unit=68f7efe66f48cbd20f04f965Unit
-	set spawnto_x86 "%windir%\\sysnative\\msiexec.exe /i foo.msi /quiet";
-	set spawnto_x64 "%windir%\\sysnative\\msiexec.exe /i foo.msi /quiet";
+	set spawnto_x86 "%windir%\\system32\\tzsync.exe";
+	set spawnto_x64 "%windir%\\system32\\tzsync.exe";
 }
 
 # https://www.zeropointsecurity.co.uk/path-player?courseid=red-team-ops-ii&unit=68f7efe66f48cbd20f04f965Unit
