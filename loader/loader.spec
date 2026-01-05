@@ -34,8 +34,6 @@ x64:
 
     disassemble "loader.txt"
 
-    disassemble "loader.txt"
-
     # mask & link the dll
     generate $MASK 128
     push $DLL

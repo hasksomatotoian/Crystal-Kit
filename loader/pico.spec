@@ -85,11 +85,6 @@ x64:
     # Following hooks are not camptible with:
     # - POSTEX_RDLLs (`powerpick`, `execute-assembly`, ...)
     # - `inject`
-    #
-    # If they are not used they create 2 alerts ("Shellcode from Unusual 
-    # Microsoft Signed Module" and "Shellcode Behavior from Unusual Memory")
-    # when executing:
-    # - `env` BOF
     ###########################################################################
     # addhook "KERNEL32$VirtualAlloc"       "_VirtualAlloc"
     # addhook "KERNEL32$VirtualAllocEx"     "_VirtualAllocEx"

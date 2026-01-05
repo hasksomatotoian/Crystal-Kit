@@ -168,23 +168,23 @@ BOOL WINAPI _CloseHandle ( HANDLE hObject )
     */
 }
 
-// HANDLE WINAPI _CreateFileMappingA ( HANDLE hFile, LPSECURITY_ATTRIBUTES lpFileMappingAttributes, DWORD flProtect, DWORD dwMaximumSizeHigh, DWORD dwMaximumSizeLow, LPCSTR lpName )
-// {
-//     SYSCALL syscall = { 0 };
-//     HANDLE hSection = NULL;
-//     LARGE_INTEGER maxSize;
-//     OBJECT_ATTRIBUTES oa = { sizeof(oa), 0, 0, 0, 0, 0 };
+HANDLE WINAPI _CreateFileMappingA ( HANDLE hFile, LPSECURITY_ATTRIBUTES lpFileMappingAttributes, DWORD flProtect, DWORD dwMaximumSizeHigh, DWORD dwMaximumSizeLow, LPCSTR lpName )
+{
+    SYSCALL syscall = { 0 };
+    HANDLE hSection = NULL;
+    LARGE_INTEGER maxSize;
+    OBJECT_ATTRIBUTES oa = { sizeof(oa), 0, 0, 0, 0, 0 };
     
-//     if ( ! prepare_nt_syscall ( NTDLL_HASH, NTCREATESECTION_HASH, &syscall ) ) return NULL;
+    if ( ! prepare_nt_syscall ( NTDLL_HASH, NTCREATESECTION_HASH, &syscall ) ) return NULL;
     
-//     maxSize.HighPart = dwMaximumSizeHigh;
-//     maxSize.LowPart = dwMaximumSizeLow;
+    maxSize.HighPart = dwMaximumSizeHigh;
+    maxSize.LowPart = dwMaximumSizeLow;
     
-//     if ( ( NTSTATUS ) do_syscall ( &hSection, SECTION_ALL_ACCESS, &oa, &maxSize, flProtect, SEC_COMMIT, hFile ) == 0 ) {
-//         return hSection;
-//     }
-//     return NULL;
-// }
+    if ( ( NTSTATUS ) do_syscall ( &hSection, SECTION_ALL_ACCESS, &oa, &maxSize, flProtect, SEC_COMMIT, hFile ) == 0 ) {
+        return hSection;
+    }
+    return NULL;
+}
 
 BOOL _CreateProcessA ( LPCSTR lpApplicationName, LPSTR lpCommandLine, LPSECURITY_ATTRIBUTES lpProcessAttributes, LPSECURITY_ATTRIBUTES lpThreadAttributes, BOOL bInheritHandles, DWORD dwCreationFlags, LPVOID lpEnvironment, LPCSTR lpCurrentDirectory, LPSTARTUPINFOA lpStartupInfo, LPPROCESS_INFORMATION lpProcessInformation )
 {
@@ -316,23 +316,23 @@ BOOL WINAPI _GetThreadContext ( HANDLE hThread, LPCONTEXT lpContext )
     return ( NTSTATUS ) do_syscall ( hThread, lpContext ) == 0;
 }
 
-// LPVOID WINAPI _MapViewOfFile ( HANDLE hFileMappingObject, DWORD dwDesiredAccess, DWORD dwFileOffsetHigh, DWORD dwFileOffsetLow, SIZE_T dwNumberOfBytesToMap )
-// {
-//     SYSCALL syscall = { 0 };
-//     PVOID baseAddress = NULL;
-//     SIZE_T viewSize = dwNumberOfBytesToMap;
-//     LARGE_INTEGER sectionOffset;
+LPVOID WINAPI _MapViewOfFile ( HANDLE hFileMappingObject, DWORD dwDesiredAccess, DWORD dwFileOffsetHigh, DWORD dwFileOffsetLow, SIZE_T dwNumberOfBytesToMap )
+{
+    SYSCALL syscall = { 0 };
+    PVOID baseAddress = NULL;
+    SIZE_T viewSize = dwNumberOfBytesToMap;
+    LARGE_INTEGER sectionOffset;
     
-//     if ( ! prepare_nt_syscall ( NTDLL_HASH, NTMAPVIEWOFSECTION_HASH, &syscall ) ) return NULL;
+    if ( ! prepare_nt_syscall ( NTDLL_HASH, NTMAPVIEWOFSECTION_HASH, &syscall ) ) return NULL;
     
-//     sectionOffset.HighPart = dwFileOffsetHigh;
-//     sectionOffset.LowPart = dwFileOffsetLow;
+    sectionOffset.HighPart = dwFileOffsetHigh;
+    sectionOffset.LowPart = dwFileOffsetLow;
     
-//     if ( ( NTSTATUS ) do_syscall ( hFileMappingObject, ( HANDLE ) ( -1 ), &baseAddress, 0, 0, &sectionOffset, &viewSize, 1, 0, PAGE_READWRITE ) == 0 ) {
-//         return baseAddress;
-//     }
-//     return NULL;
-// }
+    if ( ( NTSTATUS ) do_syscall ( hFileMappingObject, ( HANDLE ) ( -1 ), &baseAddress, 0, 0, &sectionOffset, &viewSize, 1, 0, PAGE_READWRITE ) == 0 ) {
+        return baseAddress;
+    }
+    return NULL;
+}
 
 HANDLE WINAPI _OpenProcess ( DWORD dwDesiredAccess, BOOL bInheritHandle, DWORD dwProcessId )
 {
@@ -382,12 +382,12 @@ BOOL WINAPI _SetThreadContext ( HANDLE hThread, const CONTEXT * lpContext )
     return ( NTSTATUS ) do_syscall ( hThread, lpContext ) == 0;
 }
 
-// BOOL WINAPI _UnmapViewOfFile ( LPCVOID lpBaseAddress )
-// {
-//     SYSCALL syscall = { 0 };
-//     if ( ! prepare_nt_syscall ( NTDLL_HASH, NTUNMAPVIEWOFSECTION_HASH, &syscall ) ) return FALSE;
-//     return ( NTSTATUS ) do_syscall ( ( HANDLE ) ( -1 ), (PVOID)lpBaseAddress ) == 0;
-// }
+BOOL WINAPI _UnmapViewOfFile ( LPCVOID lpBaseAddress )
+{
+    SYSCALL syscall = { 0 };
+    if ( ! prepare_nt_syscall ( NTDLL_HASH, NTUNMAPVIEWOFSECTION_HASH, &syscall ) ) return FALSE;
+    return ( NTSTATUS ) do_syscall ( ( HANDLE ) ( -1 ), (PVOID)lpBaseAddress ) == 0;
+}
 
 LPVOID WINAPI _VirtualAllocEx ( HANDLE hProcess, LPVOID lpAddress, SIZE_T dwSize, DWORD flAllocationType, DWORD flProtect )
 {
