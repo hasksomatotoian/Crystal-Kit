@@ -195,7 +195,7 @@ void init_frame_info ( SYNTHETIC_STACK_FRAME * frame )
     |--> Found 1 gadget(s)
     |---> jmp qword ptr [rsi] @ 0x18001B711 - call @ 0x18001B70C
     */
-    const char * GADGET_DLL = "dfshim.dll";
+    const char * GADGET_DLL = "archiveint.dll";
     PVOID gadget = KERNEL32$GetModuleHandleA ( GADGET_DLL );
     if ( gadget != NULL ) {
         frame->Gadget = gadget;

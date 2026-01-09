@@ -110,12 +110,12 @@ void init_frame_info ( SYNTHETIC_STACK_FRAME * frame )
 
     // frame->Gadget                = KERNEL32$GetModuleHandleA ( "KernelBase.dll" );
 
-    PVOID dfshim = KERNEL32$GetModuleHandleA ( "dfshim.dll" );
+    PVOID dfshim = KERNEL32$GetModuleHandleA ( "archiveint.dll" );
 
     if ( dfshim != NULL ) {
         frame->Gadget = dfshim;
     } else {
-        frame->Gadget = LoadLibraryA ( "dfshim.dll" );
+        frame->Gadget = LoadLibraryA ( "archiveint.dll" );
     }
 }
 
