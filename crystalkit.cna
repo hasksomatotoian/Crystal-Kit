@@ -93,42 +93,42 @@ set BEACON_RDLL_SIZE {
    return "0";
 }
 
-set BEACON_RDLL_GENERATE_LOCAL
-{
-    local ( '$beacon $arch $gmh $gpa $spec_path $spec $hash_map $final' );
+# set BEACON_RDLL_GENERATE_LOCAL
+# {
+#     local ( '$beacon $arch $gmh $gpa $spec_path $spec $hash_map $final' );
 
-    $beacon = $2;
-    $arch   = $3;
-    $gmh    = $5;
-    $gpa    = $6;
+#     $beacon = $2;
+#     $arch   = $3;
+#     $gmh    = $5;
+#     $gpa    = $6;
 
-    if ( $arch eq "x86" )
-    {
-        warn ( "Crystal Kit is x64 only" );
-        return $null;
-    }
+#     if ( $arch eq "x86" )
+#     {
+#         warn ( "Crystal Kit is x64 only" );
+#         return $null;
+#     }
 
-    print_info ( "BEACON_RDLL_GENERATE_LOCAL" );
+#     print_info ( "BEACON_RDLL_GENERATE_LOCAL" );
 
-    $spec_path = getFileProper ( script_resource ( "local-loader" ), "loader.spec" );
-    $spec      = [ LinkSpec Parse: $spec_path ];
+#     $spec_path = getFileProper ( script_resource ( "local-loader" ), "loader.spec" );
+#     $spec      = [ LinkSpec Parse: $spec_path ];
 
-    $hash_map  = [ new HashMap ];
+#     $hash_map  = [ new HashMap ];
 
-    [ $hash_map put: "\$GMH", cast ( $gmh, 'b' ) ];
-    [ $hash_map put: "\$GPA", cast ( $gpa, 'b' ) ];
+#     [ $hash_map put: "\$GMH", cast ( $gmh, 'b' ) ];
+#     [ $hash_map put: "\$GPA", cast ( $gpa, 'b' ) ];
 
-    $final = [ $spec run: $beacon, $hash_map ];
+#     $final = [ $spec run: $beacon, $hash_map ];
 
-    if ( strlen ( $final ) == 0 )
-    {
-        warn ( "Failed to build payload" );
-        return $null;
-    }
+#     if ( strlen ( $final ) == 0 )
+#     {
+#         warn ( "Failed to build payload" );
+#         return $null;
+#     }
 
-    print_info ( strlen ( $final ) );
-    return $final;
-}
+#     print_info ( strlen ( $final ) );
+#     return $final;
+# }
 
 # ------------------------------------
 # $1 = DLL file name
